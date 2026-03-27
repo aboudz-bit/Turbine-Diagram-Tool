@@ -1,0 +1,157 @@
+}
+Upgrade the entire UI/UX to match a modern enterprise-level industrial product design similar to Siemens / ABB / Honeywell interfaces.
+
+This is NOT just a dashboard — it must feel like a premium industrial platform.
+
+----------------------------------------
+GLOBAL DESIGN DIRECTION:
+
+- clean, structured, spacious layout
+- strong typography hierarchy
+- minimal but powerful visuals
+- dark theme with controlled accent colors
+- no clutter, no generic card stacking
+
+----------------------------------------
+1) HERO SECTION (TOP OF DASHBOARD)
+
+Add a proper hero section:
+
+- Large title:
+  "Maintenance Operations Control"
+
+- Subtitle:
+  "Real-time monitoring, task control, and turbine maintenance insights"
+
+- Status indicator:
+  ● System Online (green pill)
+
+- Optional:
+  - subtle turbine visual background
+  - gradient overlay
+
+----------------------------------------
+2) SECTION-BASED LAYOUT (VERY IMPORTANT)
+
+Do NOT stack random cards.
+
+Group content into clear sections:
+
+- Alerts / Requires Action
+- Active Work
+- System Metrics
+- Analytics (charts)
+- Workforce
+
+Each section must have:
+- title
+- spacing above/below
+- visual separation
+
+----------------------------------------
+3) CARD REDESIGN
+
+All cards must be:
+
+- rounded-xl
+- subtle border (low opacity)
+- soft background (not flat black)
+- inner padding increased
+- hover effect:
+  - slight lift (translateY)
+  - shadow increase
+
+----------------------------------------
+4) TYPOGRAPHY HIERARCHY
+
+Define strict levels:
+
+- Page title → large bold
+- Section titles → medium bold
+- Card titles → medium
+- Labels → small muted
+- Data → strong/high contrast
+
+----------------------------------------
+5) SPACING SYSTEM
+
+Apply consistent spacing scale:
+
+- section spacing: large (mt-10 / mt-12)
+- card spacing: medium (gap-4 / gap-6)
+- inner padding: generous (p-5 / p-6)
+
+No cramped layouts.
+
+----------------------------------------
+6) TURBINE VISUAL AREA (UPGRADE)
+
+The turbine diagram must feel like a premium visualization:
+
+- centered
+- breathing space around it
+- subtle glow
+- labeled sections cleanly
+
+----------------------------------------
+7) CREATE TASK PAGE (REDESIGN UX)
+
+Split layout into 2 columns:
+
+LEFT:
+- turbine diagram
+
+RIGHT:
+- context panel:
+  - selected section
+  - stage options
+  - component chips
+  - breadcrumb
+
+Make it feel like a guided workflow, not a form.
+
+----------------------------------------
+8) ALERT DESIGN
+
+Make alerts feel premium:
+
+- soft gradient backgrounds
+- glowing borders (very subtle)
+- icons aligned properly
+- not overly aggressive red
+
+----------------------------------------
+9) REMOVE GENERIC FEEL
+
+Avoid:
+- flat cards everywhere
+- identical components repeated
+- cramped vertical stacking
+
+----------------------------------------
+10) ADD MICRO-INTERACTIONS
+
+- hover transitions (200–300ms)
+- button press feedback
+- smooth state changes
+
+----------------------------------------
+GOAL:
+
+The app should feel like:
+- Siemens industrial platform
+- modern enterprise control system
+- premium SaaS product
+
+NOT:
+- generic admin dashboard
+- template UI
+
+----------------------------------------
+IMPORTANT:
+
+Do NOT change functionality.
+ONLY upgrade visual design, layout structure, spacing, and UX hierarchy.
+
+Focus on:
+clarity + simplicity + premium fee

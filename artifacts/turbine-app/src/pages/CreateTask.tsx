@@ -165,11 +165,19 @@ export default function CreateTask() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto pb-20 space-y-5">
+    <div className="max-w-5xl mx-auto pb-20 space-y-6">
       {/* ── HEADER ── */}
-      <div>
-        <h1 className="text-2xl font-display font-bold text-foreground">Create Maintenance Task</h1>
-        <p className="text-muted-foreground text-xs mt-0.5">Pinpoint the exact location, then define the task details.</p>
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-mono text-muted-foreground/50 uppercase tracking-widest mb-1.5">SGT-9000HL · Work Order Creation</p>
+          <h1 className="text-2xl font-display font-bold text-foreground tracking-tight">Create Maintenance Task</h1>
+          <p className="text-muted-foreground/60 text-sm mt-1">Pinpoint the exact location, then define the task details.</p>
+        </div>
+        <button onClick={() => setLocation('/tasks')}
+          className="flex items-center gap-1.5 text-xs text-muted-foreground/50 hover:text-foreground transition-colors duration-200 group flex-shrink-0 mb-1">
+          <ChevronLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform duration-200" />
+          Back to Tasks
+        </button>
       </div>
 
       {/* ── STEPPER ── */}
@@ -200,11 +208,15 @@ export default function CreateTask() {
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
             {/* Left: Turbine Diagram */}
-            <Card className="lg:col-span-3 p-5 border-white/5 bg-card/60">
-              <div className="flex items-center gap-2 mb-4">
-                <MapPin className="w-4 h-4 text-primary" />
-                <h2 className="font-semibold text-sm text-foreground">Turbine Section Map</h2>
-                <span className="text-xs text-muted-foreground ml-1">— click to select</span>
+            <Card className="lg:col-span-3 p-6 border-white/[0.06] bg-card/50">
+              <div className="flex items-center gap-2.5 mb-5">
+                <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <MapPin className="w-3.5 h-3.5 text-primary" />
+                </div>
+                <div>
+                  <h2 className="font-semibold text-sm text-foreground">Turbine Section Map</h2>
+                  <p className="text-[10px] text-muted-foreground/50 mt-0.5">Click any section to select maintenance location</p>
+                </div>
               </div>
               <TurbineDiagram
                 selectedSectionId={diagramSectionId}
@@ -363,17 +375,22 @@ export default function CreateTask() {
               </button>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
               {/* Main form */}
-              <Card className="lg:col-span-2 p-5 border-white/5 bg-card/60">
-                <div className="flex items-center gap-2 mb-5">
-                  <Wrench className="w-4 h-4 text-primary" />
-                  <h2 className="font-semibold text-sm">Task Details</h2>
+              <Card className="lg:col-span-2 p-6 border-white/[0.06] bg-card/50">
+                <div className="flex items-center gap-2.5 mb-6">
+                  <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Wrench className="w-3.5 h-3.5 text-primary" />
+                  </div>
+                  <div>
+                    <h2 className="font-semibold text-sm text-foreground">Task Details</h2>
+                    <p className="text-[10px] text-muted-foreground/50">Define the work order specifics</p>
+                  </div>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-5">
                   <div>
-                    <Label className="text-xs text-muted-foreground mb-1.5 block">Task Title *</Label>
+                    <Label className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground/60 mb-2 block">Task Title *</Label>
                     <Input
                       required
                       placeholder="e.g., Replace eroded Stage 1 rotor blades"
@@ -383,10 +400,10 @@ export default function CreateTask() {
                   </div>
 
                   <div>
-                    <Label className="text-xs text-muted-foreground mb-1.5 block">Detailed Description</Label>
+                    <Label className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground/60 mb-2 block">Detailed Description</Label>
                     <Textarea
                       placeholder="Specific instructions, safety procedures, tooling requirements, or inspection criteria..."
-                      className="min-h-[110px] resize-none"
+                      className="min-h-[120px] resize-none"
                       value={formData.description}
                       onChange={e => setFormData({ ...formData, description: e.target.value })}
                     />
@@ -395,14 +412,19 @@ export default function CreateTask() {
               </Card>
 
               {/* Side panel: scheduling + assignment */}
-              <Card className="p-5 border-white/5 bg-card/60 space-y-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <Package className="w-4 h-4 text-primary" />
-                  <h2 className="font-semibold text-sm">Scheduling</h2>
+              <Card className="p-6 border-white/[0.06] bg-card/50 space-y-5">
+                <div className="flex items-center gap-2.5 mb-1">
+                  <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Package className="w-3.5 h-3.5 text-primary" />
+                  </div>
+                  <div>
+                    <h2 className="font-semibold text-sm text-foreground">Scheduling</h2>
+                    <p className="text-[10px] text-muted-foreground/50">Assignment & timeline</p>
+                  </div>
                 </div>
 
                 <div>
-                  <Label className="text-xs text-muted-foreground mb-1.5 block">Priority *</Label>
+                  <Label className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground/60 mb-2 block">Priority *</Label>
                   <Select
                     value={formData.priority}
                     onChange={e => setFormData({ ...formData, priority: e.target.value as 'low' | 'medium' | 'high' })}
@@ -414,7 +436,7 @@ export default function CreateTask() {
                 </div>
 
                 <div>
-                  <Label className="text-xs text-muted-foreground mb-1.5 block">Assign To</Label>
+                  <Label className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground/60 mb-2 block">Assign To</Label>
                   <Select
                     value={formData.assignedToId}
                     onChange={e => setFormData({ ...formData, assignedToId: e.target.value })}
@@ -427,7 +449,7 @@ export default function CreateTask() {
                 </div>
 
                 <div>
-                  <Label className="text-xs text-muted-foreground mb-1.5 block">Est. Hours</Label>
+                  <Label className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground/60 mb-2 block">Est. Hours</Label>
                   <Input
                     type="number" step="0.5" min="0" placeholder="e.g. 8"
                     value={formData.estimatedHours}
@@ -436,7 +458,7 @@ export default function CreateTask() {
                 </div>
 
                 <div>
-                  <Label className="text-xs text-muted-foreground mb-1.5 block">Deadline</Label>
+                  <Label className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground/60 mb-2 block">Deadline</Label>
                   <Input
                     type="datetime-local"
                     value={formData.deadline}
