@@ -1,0 +1,20 @@
+packages:
+  "framer-motion": "For page transitions, smooth stage card reveals, and SVG interaction animations"
+  "recharts": "For dashboard task analytics and statistics charts"
+  "date-fns": "For human-readable date formatting on task deadlines and creation times"
+  "react-hook-form": "For robust form state management in the complex Create Task wizard"
+  "@hookform/resolvers": "For integrating Zod validation with react-hook-form"
+  "zod": "For client-side validation schemas mirroring the backend"
+  "lucide-react": "For beautiful industrial icons throughout the application"
+  "clsx": "For conditional class name merging"
+  "tailwind-merge": "For resolving tailwind class conflicts"
+
+images:
+  - path: "artifacts/turbine-app/public/images/dashboard-bg.png"
+    description: "Dark, moody industrial texture, dark navy and slate with subtle glowing teal and amber tech lines, blurred background for a dashboard, very subtle"
+    aspect_ratio: "16:9"
+
+notes:
+  - React Query hooks are imported from @workspace/api-client-react
+  - SVG Turbine handles responsive scaling via viewBox rather than horizontal scroll for a better mobile experience
+  - Using fallback mock data for turbine sections/stages to guarantee the interactive UI works beautifully even if the DB is not fully seeded yet

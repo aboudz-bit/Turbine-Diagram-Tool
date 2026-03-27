@@ -1,15 +1,18 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Maintenance Task & QC Management System API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: assets
+    description: Asset and turbine section operations
+  - name: tasks
+    description: Task management operations
 paths:
   /healthz:
     get:
@@ -24,6 +27,177 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /assets:
+    get:
+      operationId: listAssets
+      tags: [assets]
+      summary: List all assets
+      responses:
+        "200":
+          description: List of assets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Asset"
+  /assets/{assetId}/sections:
+    get:
+      operationId: listSections
+      tags: [assets]
+      summary: List sections for an asset
+      parameters:
+        - name: assetId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of sections
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AssetSection"
+  /sections/{sectionId}/stages:
+    get:
+      operationId: listStages
+      tags: [assets]
+      summary: List stages for a section
+      parameters:
+        - name: sectionId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of stages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AssetStage"
+  /stages/{stageId}/components:
+    get:
+      operationId: listComponents
+      tags: [assets]
+      summary: List components for a stage
+      parameters:
+        - name: stageId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of components
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AssetComponent"
+  /tasks:
+    get:
+      operationId: listTasks
+      tags: [tasks]
+      summary: List all tasks
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: assignedTo
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Task"
+    post:
+      operationId: createTask
+      tags: [tasks]
+      summary: Create a new task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTaskInput"
+      responses:
+        "201":
+          description: Created task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+  /tasks/{taskId}:
+    get:
+      operationId: getTask
+      tags: [tasks]
+      summary: Get task by ID
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Task detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+    patch:
+      operationId: updateTaskStatus
+      tags: [tasks]
+      summary: Update task status
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTaskStatusInput"
+      responses:
+        "200":
+          description: Updated task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+  /users:
+    get:
+      operationId: listUsers
+      tags: [tasks]
+      summary: List all users
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +207,180 @@ components:
           type: string
       required:
         - status
-
+    Asset:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        model:
+          type: string
+      required:
+        - id
+        - name
+        - model
+    AssetSection:
+      type: object
+      properties:
+        id:
+          type: integer
+        assetId:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        order:
+          type: integer
+      required:
+        - id
+        - assetId
+        - name
+        - order
+    AssetStage:
+      type: object
+      properties:
+        id:
+          type: integer
+        sectionId:
+          type: integer
+        name:
+          type: string
+        stageNumber:
+          type: integer
+        bladeCountMin:
+          type: integer
+        bladeCountMax:
+          type: integer
+      required:
+        - id
+        - sectionId
+        - name
+        - stageNumber
+    AssetComponent:
+      type: object
+      properties:
+        id:
+          type: integer
+        stageId:
+          type: integer
+        name:
+          type: string
+      required:
+        - id
+        - stageId
+        - name
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [engineer, supervisor, site_manager, technician]
+      required:
+        - id
+        - name
+        - email
+        - role
+    Task:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        assetId:
+          type: integer
+        assetName:
+          type: string
+        sectionId:
+          type: integer
+        sectionName:
+          type: string
+        stageId:
+          type: integer
+        stageName:
+          type: string
+        componentId:
+          type: integer
+        componentName:
+          type: string
+        assignedToId:
+          type: integer
+        assignedToName:
+          type: string
+        createdById:
+          type: integer
+        estimatedHours:
+          type: number
+        deadline:
+          type: string
+          format: date-time
+        priority:
+          type: string
+          enum: [high, medium, low]
+        status:
+          type: string
+          enum: [draft, assigned, in_progress, paused, submitted, under_qc, approved, rejected, overdue]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - status
+        - priority
+        - createdAt
+    CreateTaskInput:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        assetId:
+          type: integer
+        sectionId:
+          type: integer
+        stageId:
+          type: integer
+        componentId:
+          type: integer
+        assignedToId:
+          type: integer
+        estimatedHours:
+          type: number
+        deadline:
+          type: string
+          format: date-time
+        priority:
+          type: string
+          enum: [high, medium, low]
+      required:
+        - title
+        - assetId
+        - sectionId
+        - priority
+    UpdateTaskStatusInput:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [draft, assigned, in_progress, paused, submitted, under_qc, approved, rejected, overdue]
+        pauseReason:
+          type: string
+        qcComment:
+          type: string
+      required:
+        - status

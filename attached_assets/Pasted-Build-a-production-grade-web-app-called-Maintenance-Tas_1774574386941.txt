@@ -1,0 +1,284 @@
+Build a production-grade web app called "Maintenance Task & QC Management System" with an advanced interactive equipment selector focused on gas turbine maintenance.
+
+TECH STACK:
+- Next.js 14 (App Router)
+- TypeScript
+- Tailwind CSS
+- shadcn/ui
+- Prisma ORM
+- PostgreSQL
+- NextAuth (email login)
+- react-signature-canvas
+- Zustand for state (lightweight)
+- File upload ready for S3/R2
+
+----------------------------------------
+CORE ROLES:
+1) Engineer / Supervisor / Site Manager
+- create tasks
+- assign tasks
+- set estimated time and deadline
+- review submitted work
+- approve or reject QC
+
+2) Technician
+- view assigned tasks
+- start / pause / resume tasks
+- add execution notes
+- upload photos
+- sign electronically
+- submit for QC
+
+----------------------------------------
+TASK STATUS FLOW:
+Draft → Assigned → In Progress → Paused → Submitted → Under QC → Approved / Rejected → Overdue
+
+----------------------------------------
+MAIN FEATURE: INTERACTIVE TURBINE SELECTOR
+
+Create a structured + visual selector for equipment location.
+
+STEP 1 — SECTION SELECTION:
+Display gas turbine sections:
+- Compressor
+- Mid Frame
+- Turbine
+- Turbine Exit Cylinder
+
+UI:
+- Show turbine image at top (static for now)
+- Below it: selectable cards/buttons
+- Highlight selected section
+
+STEP 2 — IF "TURBINE" SELECTED:
+Show turbine stages:
+
+- Stage 1 (Blade count: 80–100)
+- Stage 2 (Blade count: 70–90)
+- Stage 3 (Blade count: 60–80)
+- Stage 4 (Blade count: 50–70)
+
+UI:
+- Cards or horizontal selector
+- When selected → show info panel:
+  "Approximate blade count: X–Y"
+
+STEP 3 — COMPONENT SELECTION:
+After selecting stage, show:
+
+- Rotor Blade
+- Stator Vane
+- Seal
+- Casing
+- Shaft
+
+----------------------------------------
+TASK CREATION FORM MUST INCLUDE:
+
+- title
+- description
+- asset (default: SGT-9000HL)
+- section
+- stage (if applicable)
+- component
+- assigned technician
+- estimated hours
+- deadline (datetime)
+- priority (High / Medium / Low)
+- checklist (optional)
+
+----------------------------------------
+TIME TRACKING:
+
+- start button
+- pause (with required reason)
+- resume
+- complete
+
+Store:
+- start time
+- pause intervals
+- total duration
+
+----------------------------------------
+SIGNATURE:
+
+- canvas signature
+- save as image/base64
+- attach:
+  - user name
+  - timestamp
+
+----------------------------------------
+QC FLOW:
+
+Supervisor can:
+- Approve
+- Reject with comments
+
+Rejected:
+- goes back to technician
+- keeps history
+
+----------------------------------------
+NOTIFICATIONS:
+
+Trigger for:
+- task assigned
+- task submitted
+- task rejected
+- task approved
+- deadline reminder (6h, 2h before)
+- overdue alert
+
+----------------------------------------
+DATABASE (PRISMA MODELS):
+
+User:
+- id
+- name
+- email
+- role
+
+Asset:
+- id
+- name (SGT-9000HL)
+
+AssetSection:
+- id
+- assetId
+- name (Compressor, Turbine...)
+
+AssetStage:
+- id
+- sectionId
+- name
+- stageNumber
+- bladeCountMin
+- bladeCountMax
+
+AssetComponent:
+- id
+- stageId
+- name
+
+Task:
+- id
+- title
+- description
+- assetId
+- sectionId
+- stageId
+- componentId
+- assignedTo
+- createdBy
+- estimatedHours
+- deadline
+- priority
+- status
+- startedAt
+- submittedAt
+- completedAt
+
+TimeEntry:
+- id
+- taskId
+- userId
+- start
+- end
+- duration
+- pauseReason
+
+Signature:
+- id
+- taskId
+- userId
+- image
+- signedAt
+
+QCReview:
+- id
+- taskId
+- reviewerId
+- decision
+- comments
+- createdAt
+
+Notification:
+- id
+- userId
+- title
+- message
+- isRead
+- createdAt
+
+AuditLog:
+- id
+- entity
+- entityId
+- action
+- userId
+- createdAt
+
+----------------------------------------
+DASHBOARD:
+
+Show:
+- open tasks
+- completed tasks
+- overdue tasks
+- tasks per stage
+- average completion time
+- rejection rate
+
+----------------------------------------
+UI REQUIREMENTS:
+
+- modern industrial dashboard
+- mobile responsive
+- Arabic + English ready (RTL support)
+- status badges:
+  - Assigned (blue)
+  - In Progress (orange)
+  - Submitted (purple)
+  - Approved (green)
+  - Rejected (red)
+  - Overdue (dark red)
+
+- clean task detail page:
+  - timeline
+  - notes
+  - attachments
+  - signature
+  - QC panel
+
+----------------------------------------
+MVP RULES:
+
+- DO NOT build complex image hotspots yet
+- use image + structured selector first
+- keep everything modular
+- no breaking existing logic
+- safe scalable code
+
+----------------------------------------
+SEED DATA:
+
+Create demo:
+- 2 engineers
+- 3 technicians
+- 1 gas turbine asset (SGT-9000HL)
+- turbine stages with blade ranges
+- sample tasks
+
+----------------------------------------
+OUTPUT:
+
+- full project structure
+- working UI
+- prisma schema
+- seed script
+- realistic dummy data
+- ready to run locally
+
+Ensure code is clean, typed, and production-ready.
