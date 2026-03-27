@@ -7,16 +7,16 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useLocation, useSearch } from "wouter"
 import { cn } from "@/lib/utils"
 
-const SECTION_COLORS: Record<string, { color: string; bg: string; border: string }> = {
-  'Compressor':           { color: 'text-sky-400',    bg: 'bg-sky-500/10',    border: 'border-sky-500/30' },
-  'Mid Frame':            { color: 'text-amber-400',  bg: 'bg-amber-500/10',  border: 'border-amber-500/30' },
-  'Turbine':              { color: 'text-emerald-400',bg: 'bg-emerald-500/10',border: 'border-emerald-500/30' },
-  'Turbine Exit Cylinder':{ color: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/30' },
+const SECTION_COLORS: Record<string, { color: string; bg: string; border: string; activeBg: string }> = {
+  'Compressor':           { color: 'text-sky-700',     bg: 'bg-sky-50',     border: 'border-sky-300',    activeBg: 'bg-sky-50' },
+  'Mid Frame':            { color: 'text-amber-700',   bg: 'bg-amber-50',   border: 'border-amber-300',  activeBg: 'bg-amber-50' },
+  'Turbine':              { color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-300',activeBg: 'bg-emerald-50' },
+  'Turbine Exit Cylinder':{ color: 'text-purple-700',  bg: 'bg-purple-50',  border: 'border-purple-300', activeBg: 'bg-purple-50' },
 }
 
 function getSectionStyle(name?: string) {
-  if (!name) return { color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/30' }
-  return SECTION_COLORS[name] || { color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/30' }
+  if (!name) return { color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/30', activeBg: 'bg-primary/5' }
+  return SECTION_COLORS[name] || { color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/30', activeBg: 'bg-primary/5' }
 }
 
 export default function AssetHistory() {
@@ -44,7 +44,6 @@ export default function AssetHistory() {
   })
 
   const [activeStageId, setActiveStageId] = React.useState<number | null>(null)
-  // Always auto-select first stage whenever stages data changes (handles initial load AND section tab changes)
   React.useEffect(() => {
     if (stages && stages.length > 0) {
       setActiveStageId(stages[0].id)
@@ -62,13 +61,13 @@ export default function AssetHistory() {
       {/* ── HEADER ── */}
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-[10px] font-mono text-muted-foreground/50 uppercase tracking-widest mb-1.5">
+          <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest mb-1.5">
             {defaultAsset?.name || 'SGT-9000HL'} · Maintenance Record
           </p>
           <h1 className="text-2xl font-display font-bold text-foreground">
             Asset History
           </h1>
-          <p className="text-muted-foreground/60 text-sm mt-1">
+          <p className="text-muted-foreground text-sm mt-1">
             Component-level maintenance record, fault tracking & task history
           </p>
         </div>
@@ -84,10 +83,10 @@ export default function AssetHistory() {
               key={section.id}
               onClick={() => { setActiveSectionId(section.id) }}
               className={cn(
-                "whitespace-nowrap px-5 py-2.5 rounded-xl text-xs font-semibold transition-all border",
+                "whitespace-nowrap px-5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150 border",
                 isActive
-                  ? `${style.bg} ${style.border} ${style.color} shadow-[0_0_16px_rgba(0,0,0,0.2)]`
-                  : "bg-card/60 border-white/8 text-muted-foreground hover:bg-white/[0.04] hover:border-white/15 hover:text-foreground"
+                  ? `${style.activeBg} ${style.border} ${style.color} shadow-sm`
+                  : "bg-white border-border text-muted-foreground hover:bg-muted hover:text-foreground"
               )}
             >
               {section.name}
@@ -99,21 +98,21 @@ export default function AssetHistory() {
       {/* ── STAGE SUB-TABS ── */}
       {stages && stages.length > 0 && (
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-[10px] uppercase tracking-widest text-muted-foreground/50 font-bold mr-1">Stage</span>
+          <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mr-1">Stage</span>
           {stages.map(stage => (
             <button
               key={stage.id}
               onClick={() => setActiveStageId(stage.id)}
               className={cn(
-                "px-3.5 py-2 rounded-lg text-xs font-semibold transition-all border",
+                "px-3.5 py-2 rounded-lg text-xs font-semibold transition-all duration-150 border",
                 activeStageId === stage.id
-                  ? "bg-white/10 border-white/20 text-foreground shadow-sm"
-                  : "border-white/6 bg-white/[0.02] text-muted-foreground hover:bg-white/[0.05] hover:text-foreground hover:border-white/15"
+                  ? "bg-white border-border text-foreground shadow-sm"
+                  : "border-transparent text-muted-foreground hover:bg-white hover:text-foreground hover:border-border"
               )}
             >
               {stage.name}
               {stage.bladeCountMin != null && stage.bladeCountMax != null && (
-                <span className={cn("ml-1.5 text-[10px]", activeStageId === stage.id ? "text-muted-foreground" : "text-muted-foreground/50")}>
+                <span className={cn("ml-1.5 text-[10px]", activeStageId === stage.id ? "text-muted-foreground" : "text-muted-foreground/60")}>
                   ({stage.bladeCountMin}–{stage.bladeCountMax})
                 </span>
               )}
@@ -124,10 +123,9 @@ export default function AssetHistory() {
 
       {/* ── COMPONENT GRID ── */}
       {!activeStageId ? (
-        // Loading skeleton — shown while stages/components are auto-loading
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-44 rounded-xl bg-card/40 animate-pulse border border-white/5" />
+            <div key={i} className="h-44 rounded-xl bg-muted animate-pulse border border-border" />
           ))}
         </div>
       ) : (
@@ -150,7 +148,7 @@ export default function AssetHistory() {
               </motion.div>
             ))}
             {components?.length === 0 && (
-              <div className="col-span-full py-12 text-center text-sm text-muted-foreground border border-white/5 border-dashed rounded-xl">
+              <div className="col-span-full py-12 text-center text-sm text-muted-foreground border border-border border-dashed rounded-xl bg-white">
                 No components in this stage
               </div>
             )}
@@ -174,7 +172,7 @@ function ComponentCard({
 
   if (isLoading) {
     return (
-      <Card className="h-40 animate-pulse bg-card/40 border-white/5" />
+      <Card className="h-40 animate-pulse bg-muted border-border" />
     )
   }
 
@@ -185,25 +183,24 @@ function ComponentCard({
 
   return (
     <Card className={cn(
-      "border overflow-hidden transition-all duration-200 hover:shadow-lg",
-      hasOpenTasks ? "border-amber-500/25" : recentMaint ? "border-emerald-500/20" : "border-white/5"
+      "border overflow-hidden transition-all duration-150 hover:shadow-md",
+      hasOpenTasks ? "border-amber-300" : recentMaint ? "border-emerald-300" : "border-border"
     )}>
-      {/* Card Header */}
       <div
         className="p-4 cursor-pointer"
         onClick={() => history?.tasks?.length && setExpanded(!expanded)}
       >
         <div className="flex items-start justify-between gap-2 mb-3">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0", sectionStyle.bg)}>
+            <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0", sectionStyle.bg, "border", sectionStyle.border)}>
               <Wrench className={`w-4 h-4 ${sectionStyle.color}`} />
             </div>
             <div className="min-w-0">
-              <h3 className="font-semibold text-sm text-foreground/95 truncate">{componentName}</h3>
+              <h3 className="font-semibold text-sm text-foreground truncate">{componentName}</h3>
               {hasOpenTasks && (
                 <div className="flex items-center gap-1 mt-0.5">
-                  <AlertTriangle className="w-3 h-3 text-amber-400" />
-                  <span className="text-[10px] text-amber-400 font-medium">{openTasks.length} open task{openTasks.length > 1 ? 's' : ''}</span>
+                  <AlertTriangle className="w-3 h-3 text-amber-600" />
+                  <span className="text-[10px] text-amber-600 font-medium">{openTasks.length} open task{openTasks.length > 1 ? 's' : ''}</span>
                 </div>
               )}
             </div>
@@ -217,13 +214,13 @@ function ComponentCard({
 
         {/* Stats grid */}
         <div className="grid grid-cols-3 gap-2 text-center">
-          <div className="bg-background/50 rounded-lg p-2 border border-white/5">
+          <div className="bg-muted/50 rounded-lg p-2 border border-border">
             <div className="text-[10px] text-muted-foreground mb-0.5 flex items-center justify-center gap-1">
               <Layers className="w-2.5 h-2.5" /> Total
             </div>
             <div className="font-bold text-sm text-foreground">{history?.totalTasks || 0}</div>
           </div>
-          <div className="bg-background/50 rounded-lg p-2 border border-white/5">
+          <div className="bg-muted/50 rounded-lg p-2 border border-border">
             <div className="text-[10px] text-muted-foreground mb-0.5 flex items-center justify-center gap-1">
               <Clock className="w-2.5 h-2.5" /> Avg
             </div>
@@ -231,21 +228,21 @@ function ComponentCard({
               {history?.avgRepairHours ? `${history.avgRepairHours.toFixed(0)}h` : 'N/A'}
             </div>
           </div>
-          <div className="bg-background/50 rounded-lg p-2 border border-white/5">
+          <div className="bg-muted/50 rounded-lg p-2 border border-border">
             <div className="text-[10px] text-muted-foreground mb-0.5 flex items-center justify-center gap-1">
               <TrendingUp className="w-2.5 h-2.5" /> Open
             </div>
-            <div className={cn("font-bold text-sm", hasOpenTasks ? "text-amber-400" : "text-foreground")}>
+            <div className={cn("font-bold text-sm", hasOpenTasks ? "text-amber-600" : "text-foreground")}>
               {openTasks.length}
             </div>
           </div>
         </div>
 
         {/* Last maintenance */}
-        <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/5 text-xs">
+        <div className="flex items-center justify-between mt-3 pt-3 border-t border-border text-xs">
           <span className="text-muted-foreground">Last Maintenance</span>
           <span className={cn("font-medium",
-            recentMaint ? "text-emerald-400" : lastMaint ? "text-muted-foreground" : "text-muted-foreground")}>
+            recentMaint ? "text-emerald-600" : lastMaint ? "text-muted-foreground" : "text-muted-foreground")}>
             {lastMaint
               ? formatDistanceToNow(lastMaint, { addSuffix: true })
               : <span className="italic">Never</span>}
@@ -262,22 +259,21 @@ function ComponentCard({
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden"
           >
-            <div className="bg-background/40 border-t border-white/5 divide-y divide-white/5 max-h-56 overflow-y-auto">
+            <div className="bg-muted/30 border-t border-border divide-y divide-border max-h-56 overflow-y-auto">
               {history.tasks.map(task => (
                 <div
                   key={task.id}
-                  className="px-4 py-2.5 flex items-center gap-2.5 hover:bg-white/[0.02] cursor-pointer transition-colors"
+                  className="px-4 py-2.5 flex items-center gap-2.5 hover:bg-muted/50 cursor-pointer transition-colors"
                   onClick={() => onTaskClick(task.id)}
                 >
                   <div className={cn("w-1.5 h-1.5 rounded-full flex-shrink-0",
-                    task.status === 'approved' ? 'bg-emerald-500' : task.status === 'overdue' ? 'bg-red-500' : 'bg-amber-400')} />
+                    task.status === 'approved' ? 'bg-emerald-500' : task.status === 'overdue' ? 'bg-red-500' : 'bg-amber-500')} />
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-foreground/90 truncate">{task.title}</p>
+                    <p className="text-xs font-medium text-foreground truncate">{task.title}</p>
                     <p className="text-[10px] text-muted-foreground">{format(new Date(task.createdAt), 'MMM yyyy')} · {task.assignedToName || 'Unassigned'}</p>
                   </div>
                   <Badge variant={task.status === 'approved' ? 'success' : 'outline'}
-                    className={cn("text-[10px] flex-shrink-0",
-                      task.status === 'approved' ? 'bg-emerald-500/15 text-emerald-400 border-transparent' : 'border-white/15')}>
+                    className="text-[10px] flex-shrink-0">
                     {task.status.replace('_', ' ')}
                   </Badge>
                 </div>

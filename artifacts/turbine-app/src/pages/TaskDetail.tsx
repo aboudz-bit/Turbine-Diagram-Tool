@@ -17,15 +17,15 @@ import { Card, Button, Badge, Label, Textarea, Input } from "@/components/ui/cor
 import { cn } from "@/lib/utils"
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  draft:      { label: 'Draft',       color: 'text-slate-400',   bg: 'bg-slate-500/15',  border: 'border-slate-500/30' },
-  assigned:   { label: 'Assigned',    color: 'text-amber-400',   bg: 'bg-amber-500/15',  border: 'border-amber-500/30' },
-  in_progress:{ label: 'In Progress', color: 'text-sky-400',     bg: 'bg-sky-500/15',    border: 'border-sky-500/30' },
-  paused:     { label: 'Paused',      color: 'text-orange-400',  bg: 'bg-orange-500/15', border: 'border-orange-500/30' },
-  submitted:  { label: 'Submitted',   color: 'text-purple-400',  bg: 'bg-purple-500/15', border: 'border-purple-500/30' },
-  under_qc:   { label: 'Under QC',    color: 'text-purple-400',  bg: 'bg-purple-500/15', border: 'border-purple-500/30' },
-  approved:   { label: 'Approved',    color: 'text-emerald-400', bg: 'bg-emerald-500/15',border: 'border-emerald-500/30' },
-  rejected:   { label: 'Rejected',    color: 'text-red-400',     bg: 'bg-red-500/15',    border: 'border-red-500/30' },
-  overdue:    { label: 'Overdue',     color: 'text-red-500',     bg: 'bg-red-500/20',    border: 'border-red-500/40' },
+  draft:      { label: 'Draft',       color: 'text-slate-600',   bg: 'bg-slate-100',  border: 'border-slate-300' },
+  assigned:   { label: 'Assigned',    color: 'text-amber-700',   bg: 'bg-amber-50',   border: 'border-amber-300' },
+  in_progress:{ label: 'In Progress', color: 'text-sky-700',     bg: 'bg-sky-50',     border: 'border-sky-300' },
+  paused:     { label: 'Paused',      color: 'text-orange-700',  bg: 'bg-orange-50',  border: 'border-orange-300' },
+  submitted:  { label: 'Submitted',   color: 'text-purple-700',  bg: 'bg-purple-50',  border: 'border-purple-300' },
+  under_qc:   { label: 'Under QC',    color: 'text-purple-700',  bg: 'bg-purple-50',  border: 'border-purple-300' },
+  approved:   { label: 'Approved',    color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-300' },
+  rejected:   { label: 'Rejected',    color: 'text-red-700',     bg: 'bg-red-50',     border: 'border-red-300' },
+  overdue:    { label: 'Overdue',     color: 'text-red-700',     bg: 'bg-red-100',    border: 'border-red-400' },
 }
 
 const PRIORITY_COLORS = {
@@ -67,7 +67,7 @@ export default function TaskDetail() {
 
   const status = STATUS_CONFIG[task.status] || STATUS_CONFIG.draft
   const isLocked = task.status === 'approved'
-  const priorityColor = PRIORITY_COLORS[task.priority as keyof typeof PRIORITY_COLORS] || 'bg-slate-500'
+  const priorityColor = PRIORITY_COLORS[task.priority as keyof typeof PRIORITY_COLORS] || 'bg-slate-400'
 
   const handleStart = async () => {
     await startMutation.mutateAsync({ taskId, data: { userId: 1 } })
@@ -85,7 +85,6 @@ export default function TaskDetail() {
     refetch()
   }
   const handleSubmitForQc = async () => {
-    // Update status to submitted via status mutation
     refetch()
   }
   const handleQcSubmit = async (decision: 'approved' | 'rejected') => {
@@ -98,13 +97,12 @@ export default function TaskDetail() {
     <div className="max-w-5xl mx-auto pb-20 space-y-5">
       {/* ── BACK NAV ── */}
       <button onClick={() => setLocation('/tasks')}
-        className="flex items-center gap-1.5 text-xs text-muted-foreground/60 hover:text-foreground transition-colors duration-200 group">
-        <ChevronLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform duration-200" /> Back to Task List
+        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors duration-150 group">
+        <ChevronLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform duration-150" /> Back to Task List
       </button>
 
       {/* ── TASK HEADER ── */}
-      <div className={`rounded-2xl border ${isLocked ? 'border-emerald-500/20 bg-emerald-500/[0.04]' : 'border-white/[0.07] bg-card/60'} overflow-hidden shadow-[0_4px_24px_rgba(0,0,0,0.15)]`}>
-        {/* Priority + status strip */}
+      <div className={`rounded-2xl border overflow-hidden shadow-sm ${isLocked ? 'border-emerald-300 bg-emerald-50/50' : 'border-border bg-white'}`}>
         <div className="flex items-center gap-0">
           <div className={`w-1.5 self-stretch ${priorityColor}`} />
           <div className="flex-1 px-6 py-5">
@@ -113,15 +111,14 @@ export default function TaskDetail() {
                 <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
                   <span className="text-xs font-mono text-muted-foreground">TSK-{task.id.toString().padStart(4, '0')}</span>
                   <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${status.color} ${status.bg} ${status.border}`}>
-                    {task.status === 'in_progress' && <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" />}
+                    {task.status === 'in_progress' && <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse" />}
                     {task.status === 'overdue' && <AlertCircle className="w-3 h-3" />}
                     {task.status === 'approved' && <Lock className="w-3 h-3" />}
                     {status.label}
                   </span>
-                  {isLocked && <span className="text-xs text-emerald-400 font-medium flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" /> QC Approved — Read Only</span>}
+                  {isLocked && <span className="text-xs text-emerald-700 font-medium flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" /> QC Approved — Read Only</span>}
                 </div>
                 <h1 className="text-xl font-display font-bold text-foreground leading-tight">{task.title}</h1>
-                {/* Location breadcrumb */}
                 <div className="flex items-center gap-1.5 mt-1.5 text-xs text-muted-foreground flex-wrap">
                   <span>{task.assetName || 'SGT-9000HL'}</span>
                   <ChevronRight className="w-3 h-3" />
@@ -137,14 +134,13 @@ export default function TaskDetail() {
                 </div>
               </div>
 
-              {/* Task meta grid */}
               <div className="grid grid-cols-2 sm:grid-cols-1 gap-x-6 gap-y-2 text-xs flex-shrink-0 sm:min-w-[140px]">
                 <div className="flex items-center gap-1.5 text-muted-foreground">
                   <User className="w-3 h-3" />
                   <span>{task.assignedToName || 'Unassigned'}</span>
                 </div>
                 {task.deadline && (
-                  <div className={cn("flex items-center gap-1.5", task.status === 'overdue' ? 'text-red-400' : 'text-muted-foreground')}>
+                  <div className={cn("flex items-center gap-1.5", task.status === 'overdue' ? 'text-red-600' : 'text-muted-foreground')}>
                     <Calendar className="w-3 h-3" />
                     <span>{format(new Date(task.deadline), 'MMM d, yyyy')}</span>
                   </div>
@@ -156,13 +152,13 @@ export default function TaskDetail() {
                   </div>
                 )}
                 {task.totalMinutes != null && task.totalMinutes > 0 && (
-                  <div className="flex items-center gap-1.5 text-sky-400">
+                  <div className="flex items-center gap-1.5 text-sky-600">
                     <Timer className="w-3 h-3" />
                     <span>{formatMinutes(task.totalMinutes)} logged</span>
                   </div>
                 )}
                 <div className="flex items-center gap-1.5 text-muted-foreground col-span-2 sm:col-span-1">
-                  <span className={`capitalize font-medium ${task.priority === 'high' ? 'text-red-400' : task.priority === 'medium' ? 'text-amber-400' : 'text-blue-400'}`}>
+                  <span className={`capitalize font-medium ${task.priority === 'high' ? 'text-red-600' : task.priority === 'medium' ? 'text-amber-600' : 'text-blue-600'}`}>
                     {task.priority} priority
                   </span>
                 </div>
@@ -177,21 +173,21 @@ export default function TaskDetail() {
         {/* Left: description + time log + QC history */}
         <div className="lg:col-span-2 space-y-5">
           {/* Description */}
-          <Card className={cn("p-6 border-white/[0.06]", isLocked && "opacity-80")}>
-            <h3 className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/60 mb-4 flex items-center gap-2">
+          <Card className={cn("p-6", isLocked && "opacity-80")}>
+            <h3 className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground mb-4 flex items-center gap-2">
               <AlertCircle className="w-3.5 h-3.5" /> Work Order Description
             </h3>
-            <div className="bg-background/40 rounded-xl p-5 text-sm text-foreground/85 leading-relaxed border border-white/[0.05] min-h-[90px] whitespace-pre-wrap">
-              {task.description || <span className="text-muted-foreground/50 italic">No description provided</span>}
+            <div className="bg-muted/50 rounded-xl p-5 text-sm text-foreground leading-relaxed border border-border min-h-[90px] whitespace-pre-wrap">
+              {task.description || <span className="text-muted-foreground italic">No description provided</span>}
             </div>
           </Card>
 
           {/* Time Log */}
-          <Card className="p-6 border-white/[0.06]">
-            <h3 className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/60 mb-4 flex items-center gap-2">
+          <Card className="p-6">
+            <h3 className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground mb-4 flex items-center gap-2">
               <Clock className="w-3.5 h-3.5" /> Time Log
               {task.totalMinutes ? (
-                <span className="ml-auto font-mono text-sky-400 font-bold text-sm normal-case tracking-normal">
+                <span className="ml-auto font-mono text-sky-600 font-bold text-sm normal-case tracking-normal">
                   {formatMinutes(task.totalMinutes)} total
                 </span>
               ) : null}
@@ -200,31 +196,31 @@ export default function TaskDetail() {
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
-                    <tr className="border-b border-white/5">
-                      <th className="pb-2 text-left text-muted-foreground font-medium">Start</th>
-                      <th className="pb-2 text-left text-muted-foreground font-medium">End</th>
-                      <th className="pb-2 text-center text-muted-foreground font-medium">Duration</th>
-                      <th className="pb-2 text-left text-muted-foreground font-medium">Note</th>
+                    <tr className="border-b border-border">
+                      <th className="pb-2 text-left text-muted-foreground font-semibold">Start</th>
+                      <th className="pb-2 text-left text-muted-foreground font-semibold">End</th>
+                      <th className="pb-2 text-center text-muted-foreground font-semibold">Duration</th>
+                      <th className="pb-2 text-left text-muted-foreground font-semibold">Note</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/5">
+                  <tbody className="divide-y divide-border">
                     {task.timeEntries.map(te => (
                       <tr key={te.id}>
-                        <td className="py-2.5 pr-4 text-foreground/80 whitespace-nowrap">
+                        <td className="py-2.5 pr-4 text-foreground whitespace-nowrap">
                           <div className="flex items-center gap-1.5">
-                            <span className={cn("w-1.5 h-1.5 rounded-full flex-shrink-0", te.isActive ? "bg-emerald-400 animate-pulse" : "bg-muted-foreground/40")} />
+                            <span className={cn("w-1.5 h-1.5 rounded-full flex-shrink-0", te.isActive ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground/40")} />
                             {format(new Date(te.startTime), 'MMM d, HH:mm')}
                           </div>
                         </td>
                         <td className="py-2.5 pr-4 text-foreground/70 whitespace-nowrap">
-                          {te.endTime ? format(new Date(te.endTime), 'HH:mm') : <span className="text-emerald-400 font-medium">Ongoing</span>}
+                          {te.endTime ? format(new Date(te.endTime), 'HH:mm') : <span className="text-emerald-600 font-medium">Ongoing</span>}
                         </td>
-                        <td className="py-2.5 pr-4 text-center font-mono font-medium text-foreground/90">
+                        <td className="py-2.5 pr-4 text-center font-mono font-medium text-foreground">
                           {te.durationMinutes != null ? formatMinutes(te.durationMinutes) : '—'}
                         </td>
                         <td className="py-2.5 text-muted-foreground">
                           {te.pauseReason ? (
-                            <span className="text-amber-400/80">Paused: {te.pauseReason}</span>
+                            <span className="text-amber-600">Paused: {te.pauseReason}</span>
                           ) : '—'}
                         </td>
                       </tr>
@@ -233,7 +229,7 @@ export default function TaskDetail() {
                 </table>
               </div>
             ) : (
-              <div className="text-center py-6 text-sm text-muted-foreground border border-white/5 border-dashed rounded-lg">
+              <div className="text-center py-6 text-sm text-muted-foreground border border-border border-dashed rounded-lg">
                 No time logged yet
               </div>
             )}
@@ -241,24 +237,21 @@ export default function TaskDetail() {
 
           {/* QC History */}
           {task.qcReviews && task.qcReviews.length > 0 && (
-            <Card className="p-6 border-white/[0.06]">
-              <h3 className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/60 mb-5 flex items-center gap-2">
+            <Card className="p-6">
+              <h3 className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground mb-5 flex items-center gap-2">
                 <ShieldCheck className="w-3.5 h-3.5" /> QC Review History
               </h3>
               <div className="relative pl-5 space-y-4">
-                {/* Timeline line */}
-                <div className="absolute left-1.5 top-2 bottom-2 w-px bg-white/10" />
+                <div className="absolute left-1.5 top-2 bottom-2 w-px bg-border" />
                 {task.qcReviews.map(qc => (
                   <div key={qc.id} className="relative">
-                    {/* Timeline dot */}
                     <div className={cn("absolute -left-3.5 top-1.5 w-3 h-3 rounded-full border-2 border-background",
                       qc.decision === 'approved' ? 'bg-emerald-500' : 'bg-red-500')} />
-                    <div className="bg-background/50 rounded-lg p-3.5 border border-white/5">
+                    <div className="bg-muted/40 rounded-lg p-3.5 border border-border">
                       <div className="flex items-center justify-between mb-1.5 flex-wrap gap-2">
                         <div className="flex items-center gap-2">
                           <Badge variant={qc.decision === 'approved' ? 'success' : 'destructive'}
-                            className={cn("text-[10px] uppercase tracking-wider",
-                              qc.decision === 'approved' ? 'bg-emerald-500/20 text-emerald-400 border-transparent' : 'bg-red-500/20 text-red-400 border-transparent')}>
+                            className="text-[10px] uppercase tracking-wider">
                             {qc.decision}
                           </Badge>
                           <span className="text-xs text-muted-foreground">by {qc.reviewerName}</span>
@@ -266,7 +259,7 @@ export default function TaskDetail() {
                         <span className="text-[10px] text-muted-foreground">{format(new Date(qc.createdAt), 'MMM d, yyyy HH:mm')}</span>
                       </div>
                       {qc.comments && (
-                        <p className="text-xs text-foreground/80 leading-relaxed">{qc.comments}</p>
+                        <p className="text-xs text-foreground leading-relaxed">{qc.comments}</p>
                       )}
                     </div>
                   </div>
@@ -280,16 +273,16 @@ export default function TaskDetail() {
         <div className="space-y-5">
           {/* APPROVED LOCK STATE */}
           {isLocked && (
-            <Card className="p-7 border-emerald-500/20 bg-emerald-500/[0.04] text-center shadow-[0_0_32px_rgba(52,211,153,0.06)]">
-              <div className="w-14 h-14 rounded-full bg-emerald-500/15 border border-emerald-500/20 flex items-center justify-center mx-auto mb-4">
-                <CheckCircle2 className="w-7 h-7 text-emerald-400" />
+            <Card className="p-7 border-emerald-300 bg-emerald-50 text-center shadow-sm">
+              <div className="w-14 h-14 rounded-full bg-emerald-100 border border-emerald-200 flex items-center justify-center mx-auto mb-4">
+                <CheckCircle2 className="w-7 h-7 text-emerald-600" />
               </div>
               <h3 className="font-display font-bold text-foreground text-base">Task Approved</h3>
-              <p className="text-xs text-muted-foreground/70 mt-2 leading-relaxed">
+              <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
                 This work order has been QC approved and is locked. No further modifications are permitted.
               </p>
               {task.completedAt && (
-                <p className="text-xs text-emerald-400/80 mt-3 font-medium">
+                <p className="text-xs text-emerald-600 mt-3 font-medium">
                   Completed {formatDistanceToNow(new Date(task.completedAt))} ago
                 </p>
               )}
@@ -298,27 +291,25 @@ export default function TaskDetail() {
 
           {/* TIME TRACKING PANEL */}
           {!isLocked && (
-            <Card className={cn("p-6 border-white/[0.06]", task.activeTimeEntry && "border-sky-500/20 shadow-[0_0_24px_rgba(56,189,248,0.06)]")}>
-              <h3 className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/60 mb-5 flex items-center gap-2">
+            <Card className={cn("p-6", task.activeTimeEntry && "border-sky-300 bg-sky-50/30")}>
+              <h3 className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground mb-5 flex items-center gap-2">
                 <Timer className="w-3.5 h-3.5" /> Time Tracking
               </h3>
 
-              {/* Clock display */}
               <div className={cn("rounded-xl p-4 mb-4 text-center border",
-                task.activeTimeEntry ? "bg-sky-500/10 border-sky-500/30" : "bg-background/50 border-white/5")}>
-                <div className="text-3xl font-display font-bold font-mono tabular-nums">
+                task.activeTimeEntry ? "bg-sky-50 border-sky-200" : "bg-muted/50 border-border")}>
+                <div className="text-3xl font-display font-bold font-mono tabular-nums text-foreground">
                   {formatMinutes(task.totalMinutes)}
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">Total Logged</div>
                 {task.activeTimeEntry && (
-                  <div className="flex items-center justify-center gap-1.5 mt-2 text-xs text-sky-400 font-medium">
-                    <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" />
+                  <div className="flex items-center justify-center gap-1.5 mt-2 text-xs text-sky-600 font-medium">
+                    <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse" />
                     Running now
                   </div>
                 )}
               </div>
 
-              {/* Action buttons */}
               <div className="space-y-2">
                 {(task.status === 'assigned' || task.status === 'draft' ||
                   (!task.activeTimeEntry && !['paused', 'in_progress'].includes(task.status))) && (
@@ -331,7 +322,7 @@ export default function TaskDetail() {
 
                 {task.activeTimeEntry && (
                   <Button onClick={() => setShowPauseModal(true)}
-                    className="w-full gap-2 bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 border border-amber-500/30"
+                    className="w-full gap-2 bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-300"
                     disabled={pauseMutation.isPending}>
                     <Pause className="w-4 h-4" />
                     {pauseMutation.isPending ? 'Pausing...' : 'Pause Work'}
@@ -340,7 +331,7 @@ export default function TaskDetail() {
 
                 {task.status === 'paused' && !task.activeTimeEntry && (
                   <Button onClick={handleResume}
-                    className="w-full gap-2 bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/30"
+                    className="w-full gap-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-300"
                     disabled={resumeMutation.isPending}>
                     <Play className="w-4 h-4" />
                     {resumeMutation.isPending ? 'Resuming...' : 'Resume Work'}
@@ -348,15 +339,14 @@ export default function TaskDetail() {
                 )}
 
                 {task.status === 'in_progress' && !task.activeTimeEntry && (
-                  <Button className="w-full gap-2 bg-purple-500/15 text-purple-400 hover:bg-purple-500/25 border border-purple-500/30">
+                  <Button className="w-full gap-2 bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-300">
                     <Send className="w-4 h-4" /> Submit for QC Review
                   </Button>
                 )}
               </div>
 
-              {/* Pause modal */}
               {showPauseModal && (
-                <div className="mt-4 p-4 border border-white/10 rounded-lg bg-background/80 space-y-3">
+                <div className="mt-4 p-4 border border-border rounded-lg bg-muted/30 space-y-3">
                   <Label className="text-xs text-muted-foreground">Pause Reason *</Label>
                   <Input
                     value={pauseReason}
@@ -379,8 +369,8 @@ export default function TaskDetail() {
 
           {/* QC DECISION PANEL */}
           {!isLocked && ['submitted', 'under_qc'].includes(task.status) && (
-            <Card className="p-6 border-purple-500/20 bg-purple-500/[0.04] shadow-[0_0_24px_rgba(168,85,247,0.06)]">
-              <h3 className="text-[10px] font-bold uppercase tracking-[0.12em] text-purple-400/80 mb-5 flex items-center gap-2">
+            <Card className="p-6 border-purple-300 bg-purple-50/50">
+              <h3 className="text-[10px] font-bold uppercase tracking-[0.12em] text-purple-700 mb-5 flex items-center gap-2">
                 <ShieldCheck className="w-3.5 h-3.5" /> Quality Control Review
               </h3>
               <div className="space-y-3">
@@ -390,7 +380,7 @@ export default function TaskDetail() {
                     placeholder="Provide feedback, findings, or approval notes..."
                     value={qcComment}
                     onChange={e => setQcComment(e.target.value)}
-                    className="text-xs min-h-[80px] resize-none bg-background/80"
+                    className="text-xs min-h-[80px] resize-none"
                   />
                   {!qcComment && (
                     <p className="text-[10px] text-muted-foreground mt-1">Comment required to reject</p>
@@ -418,19 +408,19 @@ export default function TaskDetail() {
           )}
 
           {/* TASK INFO PANEL */}
-          <Card className="p-6 border-white/[0.06]">
-            <h3 className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/60 mb-5">Task Info</h3>
+          <Card className="p-6">
+            <h3 className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground mb-5">Task Info</h3>
             <div className="space-y-0 text-xs">
               {[
                 { label: 'Created', value: task.createdAt ? formatDistanceToNow(new Date(task.createdAt), { addSuffix: true }) : '—' },
                 { label: 'Status', value: status.label },
-                { label: 'Priority', value: task.priority, color: task.priority === 'high' ? 'text-red-400' : task.priority === 'medium' ? 'text-amber-400' : 'text-blue-400' },
+                { label: 'Priority', value: task.priority, color: task.priority === 'high' ? 'text-red-600' : task.priority === 'medium' ? 'text-amber-600' : 'text-blue-600' },
                 { label: 'Est. Hours', value: task.estimatedHours ? `${task.estimatedHours}h` : '—' },
                 { label: 'Logged', value: formatMinutes(task.totalMinutes) },
               ].map(item => (
-                <div key={item.label} className="flex justify-between items-center py-3 border-b border-white/[0.04] last:border-0">
-                  <span className="text-muted-foreground/60 font-medium">{item.label}</span>
-                  <span className={cn("font-semibold capitalize text-foreground/80", item.color)}>{item.value}</span>
+                <div key={item.label} className="flex justify-between items-center py-3 border-b border-border last:border-0">
+                  <span className="text-muted-foreground font-medium">{item.label}</span>
+                  <span className={cn("font-semibold capitalize text-foreground", item.color)}>{item.value}</span>
                 </div>
               ))}
             </div>

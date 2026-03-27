@@ -40,34 +40,34 @@
 }
 
 :root {
-  /* ── DARK INDUSTRIAL THEME ── */
-  --background: 222 47% 11%;
-  --foreground: 210 40% 96%;
+  /* ── LIGHT ENTERPRISE INDUSTRIAL THEME ── */
+  --background: 210 20% 97%;
+  --foreground: 222 47% 11%;
   
-  --card: 222 47% 14%;
-  --card-foreground: 210 40% 96%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
   
-  --popover: 222 47% 14%;
-  --popover-foreground: 210 40% 96%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
   
-  --primary: 213 94% 55%;
+  --primary: 217 91% 50%;
   --primary-foreground: 0 0% 100%;
   
-  --secondary: 217 33% 17%;
-  --secondary-foreground: 210 40% 96%;
+  --secondary: 210 16% 93%;
+  --secondary-foreground: 222 47% 20%;
   
-  --muted: 215 28% 17%;
-  --muted-foreground: 215 20% 52%;
+  --muted: 210 20% 95%;
+  --muted-foreground: 215 16% 47%;
   
-  --accent: 38 92% 55%;
-  --accent-foreground: 0 0% 0%;
+  --accent: 38 92% 50%;
+  --accent-foreground: 0 0% 100%;
   
   --destructive: 0 72% 51%;
   --destructive-foreground: 0 0% 100%;
 
-  --border: 217 33% 22%;
-  --input: 217 33% 17%;
-  --ring: 213 94% 55%;
+  --border: 220 13% 88%;
+  --input: 220 13% 91%;
+  --ring: 217 91% 50%;
   
   --radius: 0.75rem;
 }
@@ -79,11 +79,10 @@
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
-    @apply selection:bg-primary/20 selection:text-primary;
-    /* Subtle mechanical grid */
+    @apply selection:bg-primary/15 selection:text-primary;
     background-image:
-      linear-gradient(to right, rgba(255,255,255,0.018) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(255,255,255,0.018) 1px, transparent 1px);
+      linear-gradient(to right, rgba(0,0,0,0.025) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(0,0,0,0.025) 1px, transparent 1px);
     background-size: 48px 48px;
     background-attachment: fixed;
   }
@@ -93,9 +92,8 @@
     @apply tracking-tight;
   }
 
-  /* Smooth focus rings */
   :focus-visible {
-    @apply outline-none ring-2 ring-primary/50 ring-offset-1 ring-offset-background rounded;
+    @apply outline-none ring-2 ring-primary/40 ring-offset-2 ring-offset-background rounded;
   }
 }
 
@@ -103,33 +101,22 @@
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground) / 0.5); }
+::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground) / 0.4); }
 
 /* ── Hide scrollbar utility ── */
 .hide-scrollbar { scrollbar-width: none; }
 .hide-scrollbar::-webkit-scrollbar { display: none; }
 
-/* ── Premium card lift ── */
+/* ── Card lift ── */
 .card-lift {
   transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
 }
 .card-lift:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 32px rgba(0,0,0,0.28);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.10);
 }
 
-/* ── Glassmorphism panel ── */
+/* ── Light glass panel ── */
 .glass-panel {
-  @apply bg-card/70 backdrop-blur-md border border-white/[0.07] shadow-xl;
-}
-
-/* ── Glow utilities ── */
-.glow-primary {
-  box-shadow: 0 0 20px rgba(59,130,246,0.15);
-}
-.glow-emerald {
-  box-shadow: 0 0 20px rgba(52,211,153,0.12);
-}
-.glow-red {
-  box-shadow: 0 0 20px rgba(239,68,68,0.12);
+  @apply bg-white/80 backdrop-blur-md border border-border shadow-sm;
 }

@@ -1,0 +1,113 @@
+Redesign the entire UI theme to a LIGHT enterprise industrial design similar to Siemens interfaces.
+
+IMPORTANT:
+Remove the dark theme completely.
+
+----------------------------------------
+GLOBAL THEME:
+
+- background: very light (white or soft gray #F6F8FA)
+- cards: pure white or slightly elevated (#FFFFFF)
+- borders: subtle gray (#E5E7EB)
+- text: dark gray / near black (#111827)
+- secondary text: muted gray (#6B7280)
+
+NO dark backgrounds.
+NO glowing neon effects.
+
+----------------------------------------
+COLOR SYSTEM:
+
+Use a professional industrial palette:
+
+- Primary: deep blue (#2563EB or similar Siemens-style blue)
+- Success: soft green (#16A34A)
+- Warning: amber (#F59E0B)
+- Danger: red (#DC2626)
+
+Use colors sparingly and meaningfully.
+
+----------------------------------------
+CARD DESIGN:
+
+- background: white
+- border: 1px subtle gray
+- radius: rounded-xl
+- shadow: very soft (not heavy)
+- hover:
+  - slight lift (translateY)
+  - minimal shadow increase
+
+NO glow effects.
+
+----------------------------------------
+LAYOUT:
+
+- increase whitespace significantly
+- clean spacing between sections
+- structured blocks (not stacked clutter)
+
+----------------------------------------
+TYPOGRAPHY:
+
+- headings: bold, clean
+- section labels: uppercase, small tracking
+- body: readable, neutral
+
+----------------------------------------
+DASHBOARD:
+
+- keep hero section but convert to light gradient
+- alerts:
+  - soft background tint (light red / light purple)
+  - no heavy glow
+- KPI cards:
+  - clean white blocks
+  - strong numbers
+
+----------------------------------------
+CREATE TASK:
+
+- keep the guided assistant layout
+- make it feel like:
+  industrial control panel
+- use light cards + clear step separation
+
+----------------------------------------
+TURBINE DIAGRAM:
+
+- keep structure
+- reduce glow intensity
+- use:
+  - soft highlight
+  - clear selection border
+- make it feel technical, not flashy
+
+----------------------------------------
+ASSET HISTORY:
+
+- increase data density
+- clean grid layout
+- white cards + structured info
+
+----------------------------------------
+MICRO-INTERACTIONS:
+
+- subtle transitions (150–200ms)
+- no flashy animations
+
+----------------------------------------
+GOAL:
+
+The app should feel like:
+- Siemens industrial software
+- SAP / enterprise systems
+- clean engineering dashboard
+
+NOT:
+- dark gaming UI
+- neon/glow heavy design
+
+----------------------------------------
+DO NOT CHANGE FUNCTIONALITY.
+ONLY update theme, layout, spacing, and visual system.

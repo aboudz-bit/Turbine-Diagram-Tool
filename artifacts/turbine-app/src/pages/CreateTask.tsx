@@ -19,30 +19,30 @@ import { Card, Button, Input, Label, Textarea, Badge, Select } from "@/component
 const SECTION_META: Record<TurbineSectionID, { icon: React.ElementType; color: string; borderColor: string; bgColor: string; desc: string }> = {
   'compressor': {
     icon: Layers,
-    color: 'text-sky-400',
-    borderColor: 'border-sky-500/40',
-    bgColor: 'bg-sky-500/10',
+    color: 'text-sky-700',
+    borderColor: 'border-sky-300',
+    bgColor: 'bg-sky-50',
     desc: 'Multi-stage axial compressor — blade rows, rotor discs, stator vanes, casing seals',
   },
   'mid-frame': {
     icon: Flame,
-    color: 'text-amber-400',
-    borderColor: 'border-amber-500/40',
-    bgColor: 'bg-amber-500/10',
+    color: 'text-amber-700',
+    borderColor: 'border-amber-300',
+    bgColor: 'bg-amber-50',
     desc: 'Combustion section — fuel injectors, combustor cans, transition pieces, diffuser casings',
   },
   'turbine': {
     icon: Cpu,
-    color: 'text-emerald-400',
-    borderColor: 'border-emerald-500/40',
-    bgColor: 'bg-emerald-500/10',
+    color: 'text-emerald-700',
+    borderColor: 'border-emerald-300',
+    bgColor: 'bg-emerald-50',
     desc: 'Hot gas expansion turbine — 4 stages with rotor blades, stator nozzles, shrouds',
   },
   'exit-cylinder': {
     icon: Wind,
-    color: 'text-violet-400',
-    borderColor: 'border-violet-500/40',
-    bgColor: 'bg-violet-500/10',
+    color: 'text-violet-700',
+    borderColor: 'border-violet-300',
+    bgColor: 'bg-violet-50',
     desc: 'Exhaust diffuser and exit casing — turning vanes, diffuser struts, exhaust collector',
   },
 }
@@ -169,12 +169,12 @@ export default function CreateTask() {
       {/* ── HEADER ── */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
         <div>
-          <p className="text-[10px] font-mono text-muted-foreground/50 uppercase tracking-widest mb-1.5">SGT-9000HL · Work Order Creation</p>
+          <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest mb-1.5">SGT-9000HL · Work Order Creation</p>
           <h1 className="text-2xl font-display font-bold text-foreground tracking-tight">Create Maintenance Task</h1>
-          <p className="text-muted-foreground/60 text-sm mt-1">Pinpoint the exact location, then define the task details.</p>
+          <p className="text-muted-foreground text-sm mt-1">Pinpoint the exact location, then define the task details.</p>
         </div>
         <button onClick={() => setLocation('/tasks')}
-          className="flex items-center gap-1.5 text-xs text-muted-foreground/50 hover:text-foreground transition-colors duration-200 group flex-shrink-0 mb-1">
+          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors duration-150 group flex-shrink-0 mb-1">
           <ChevronLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform duration-200" />
           Back to Tasks
         </button>
@@ -189,12 +189,12 @@ export default function CreateTask() {
           <React.Fragment key={s.n}>
             <div className="flex items-center gap-2">
               <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all
-                ${step > s.n ? 'bg-emerald-500 text-white' : step === s.n ? 'bg-primary text-white shadow-[0_0_12px_rgba(29,78,216,0.5)]' : 'bg-white/5 text-muted-foreground border border-white/10'}`}>
+                ${step > s.n ? 'bg-emerald-500 text-white' : step === s.n ? 'bg-primary text-white shadow-sm' : 'bg-muted text-muted-foreground border border-border'}`}>
                 {step > s.n ? <CheckCircle2 className="w-4 h-4" /> : s.n}
               </div>
               <span className={`text-xs font-medium hidden sm:block ${step === s.n ? 'text-foreground' : 'text-muted-foreground'}`}>{s.label}</span>
             </div>
-            {i < 1 && <div className={`flex-1 h-px mx-3 max-w-[60px] transition-colors ${step > 1 ? 'bg-emerald-500/50' : 'bg-white/10'}`} />}
+            {i < 1 && <div className={`flex-1 h-px mx-3 max-w-[60px] transition-colors ${step > 1 ? 'bg-emerald-400' : 'bg-border'}`} />}
           </React.Fragment>
         ))}
         {/* Live breadcrumb in stepper row */}
@@ -208,7 +208,7 @@ export default function CreateTask() {
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
             {/* Left: Turbine Diagram */}
-            <Card className="lg:col-span-3 p-6 border-white/[0.06] bg-card/50">
+            <Card className="lg:col-span-3 p-6">
               <div className="flex items-center gap-2.5 mb-5">
                 <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
                   <MapPin className="w-3.5 h-3.5 text-primary" />
@@ -232,35 +232,35 @@ export default function CreateTask() {
 
             {/* Right: Guided Assistant Panel */}
             <div className="lg:col-span-2">
-              <Card className="border-white/[0.06] bg-card/50 overflow-hidden flex flex-col">
+              <Card className="overflow-hidden flex flex-col">
                 {/* Panel Header */}
-                <div className="px-5 py-4 border-b border-white/[0.06] flex items-center gap-3 bg-white/[0.02]">
+                <div className="px-5 py-4 border-b border-border flex items-center gap-3 bg-muted/30">
                   <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
                     <MapPin className="w-3.5 h-3.5 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-foreground">Location Selector</p>
-                    <p className="text-[10px] text-muted-foreground/50 mt-0.5">
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
                       {needsStage ? 'Three steps — section, stage, component' : 'Select a section on the diagram'}
                     </p>
                   </div>
                   {/* Overall progress dots */}
                   <div className="flex items-center gap-1 flex-shrink-0">
-                    <div className={`w-1.5 h-1.5 rounded-full transition-all ${diagramSectionId ? 'bg-emerald-400' : 'bg-white/20'}`} />
+                    <div className={`w-1.5 h-1.5 rounded-full transition-all ${diagramSectionId ? 'bg-emerald-500' : 'bg-muted-foreground/25'}`} />
                     {needsStage && <>
-                      <div className={`w-1.5 h-1.5 rounded-full transition-all ${selectedStageId ? 'bg-emerald-400' : 'bg-white/20'}`} />
-                      <div className={`w-1.5 h-1.5 rounded-full transition-all ${selectedComponentId ? 'bg-emerald-400' : 'bg-white/20'}`} />
+                      <div className={`w-1.5 h-1.5 rounded-full transition-all ${selectedStageId ? 'bg-emerald-500' : 'bg-muted-foreground/25'}`} />
+                      <div className={`w-1.5 h-1.5 rounded-full transition-all ${selectedComponentId ? 'bg-emerald-500' : 'bg-muted-foreground/25'}`} />
                     </>}
                   </div>
                 </div>
 
                 {/* ─── STEP 1: SELECT SECTION ─── */}
-                <div className="px-5 py-4 border-b border-white/[0.04]">
+                <div className="px-5 py-4 border-b border-border">
                   <div className="flex items-center gap-3 mb-3">
                     <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 transition-all ${
                       diagramSectionId
-                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
-                        : 'bg-primary/15 text-primary border border-primary/30 shadow-[0_0_8px_rgba(59,130,246,0.25)]'
+                        ? 'bg-emerald-100 text-emerald-700 border border-emerald-300'
+                        : 'bg-primary/10 text-primary border border-primary/30'
                     }`}>
                       {diagramSectionId ? <CheckCircle2 className="w-3.5 h-3.5" /> : '1'}
                     </div>
@@ -277,7 +277,7 @@ export default function CreateTask() {
                   <AnimatePresence mode="wait">
                     {!diagramSectionId ? (
                       <motion.p key="hint" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="text-xs text-muted-foreground/50 pl-9 leading-relaxed">
+                        className="text-xs text-muted-foreground pl-9 leading-relaxed">
                         Click any highlighted zone on the turbine diagram to begin.
                       </motion.p>
                     ) : sectionMeta && selectedDbSection ? (
@@ -292,14 +292,14 @@ export default function CreateTask() {
 
                 {/* ─── STEP 2: SELECT STAGE (Turbine only) ─── */}
                 {needsStage && (
-                  <div className={`px-5 py-4 border-b border-white/[0.04] transition-opacity ${!selectedDbSection ? 'opacity-40 pointer-events-none' : ''}`}>
+                  <div className={`px-5 py-4 border-b border-border transition-opacity ${!selectedDbSection ? 'opacity-40 pointer-events-none' : ''}`}>
                     <div className="flex items-center gap-3 mb-3">
                       <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 transition-all ${
                         selectedStageId
-                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                          ? 'bg-emerald-100 text-emerald-700 border border-emerald-300'
                           : selectedDbSection
-                            ? 'bg-primary/15 text-primary border border-primary/30 shadow-[0_0_8px_rgba(59,130,246,0.25)]'
-                            : 'bg-white/5 text-muted-foreground/40 border border-white/10'
+                            ? 'bg-primary/10 text-primary border border-primary/30'
+                            : 'bg-muted text-muted-foreground border border-border'
                       }`}>
                         {selectedStageId ? <CheckCircle2 className="w-3.5 h-3.5" /> : selectedDbSection ? '2' : <Lock className="w-2.5 h-2.5" />}
                       </div>
@@ -307,7 +307,7 @@ export default function CreateTask() {
                         Select Stage
                       </span>
                       {selectedStage && (
-                        <Badge variant="outline" className="ml-auto text-[10px] text-emerald-400 border-emerald-500/30 bg-emerald-500/8">
+                        <Badge variant="success" className="ml-auto text-[10px]">
                           {selectedStage.name}
                         </Badge>
                       )}
@@ -322,15 +322,15 @@ export default function CreateTask() {
                             onClick={() => { setSelectedStageId(stage.id); setSelectedComponentId(null) }}
                             className={`p-3 rounded-xl border text-left transition-all duration-150 ${
                               selectedStageId === stage.id
-                                ? 'border-emerald-500/50 bg-emerald-500/12 shadow-[0_0_14px_rgba(52,211,153,0.12)]'
-                                : 'border-white/8 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/18'
+                                ? 'border-emerald-300 bg-emerald-50 shadow-sm'
+                                : 'border-border bg-background hover:bg-muted hover:border-primary/30'
                             }`}
                           >
                             <div className="flex items-center justify-between mb-0.5">
-                              <span className={`font-bold text-sm ${selectedStageId === stage.id ? 'text-emerald-400' : 'text-foreground/85'}`}>
+                              <span className={`font-bold text-sm ${selectedStageId === stage.id ? 'text-emerald-700' : 'text-foreground'}`}>
                                 {stage.name}
                               </span>
-                              {selectedStageId === stage.id && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
+                              {selectedStageId === stage.id && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
                             </div>
                             <p className="text-[10px] text-muted-foreground/50">{stage.bladeCountMin}–{stage.bladeCountMax} blades</p>
                           </button>
@@ -346,10 +346,10 @@ export default function CreateTask() {
                     <div className="flex items-center gap-3 mb-3">
                       <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 transition-all ${
                         selectedComponentId
-                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                          ? 'bg-emerald-100 text-emerald-700 border border-emerald-300'
                           : selectedStageId
-                            ? 'bg-primary/15 text-primary border border-primary/30 shadow-[0_0_8px_rgba(59,130,246,0.25)]'
-                            : 'bg-white/5 text-muted-foreground/40 border border-white/10'
+                            ? 'bg-primary/10 text-primary border border-primary/30'
+                            : 'bg-muted text-muted-foreground border border-border'
                       }`}>
                         {selectedComponentId ? <CheckCircle2 className="w-3.5 h-3.5" /> : selectedStageId ? '3' : <Lock className="w-2.5 h-2.5" />}
                       </div>
@@ -372,8 +372,8 @@ export default function CreateTask() {
                             onClick={() => setSelectedComponentId(comp.id)}
                             className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-semibold transition-all duration-150 ${
                               selectedComponentId === comp.id
-                                ? 'border-primary/50 bg-primary/15 text-primary shadow-[0_0_10px_rgba(59,130,246,0.15)]'
-                                : 'border-white/8 bg-white/[0.02] text-muted-foreground/70 hover:bg-white/[0.05] hover:text-foreground hover:border-white/18'
+                                ? 'border-primary/40 bg-primary/10 text-primary shadow-sm'
+                                : 'border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground hover:border-primary/30'
                             }`}
                           >
                             {selectedComponentId === comp.id
@@ -395,7 +395,7 @@ export default function CreateTask() {
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
                       exit={{ opacity: 0, height: 0 }}
-                      className="border-t border-white/[0.06] p-5 bg-white/[0.01]"
+                      className="border-t border-border p-5 bg-muted/30"
                     >
                       <Button onClick={() => setStep(2)} className="w-full gap-2" size="lg">
                         Continue to Task Details <ArrowRight className="w-4 h-4" />
@@ -414,7 +414,7 @@ export default function CreateTask() {
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
           <form onSubmit={handleSubmit}>
             {/* Location Summary Banner */}
-            <div className={`flex items-center gap-3 px-5 py-3 rounded-xl border mb-4 ${sectionMeta?.borderColor || 'border-white/10'} ${sectionMeta?.bgColor || 'bg-white/5'}`}>
+            <div className={`flex items-center gap-3 px-5 py-3 rounded-xl border mb-4 ${sectionMeta?.borderColor || 'border-border'} ${sectionMeta?.bgColor || 'bg-muted/40'}`}>
               <MapPin className={`w-4 h-4 flex-shrink-0 ${sectionMeta?.color || 'text-muted-foreground'}`} />
               <div className="flex items-center gap-1.5 text-sm flex-wrap">
                 <span className="text-muted-foreground text-xs">{defaultAsset?.name}</span>
@@ -437,7 +437,7 @@ export default function CreateTask() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
               {/* Main form */}
-              <Card className="lg:col-span-2 p-6 border-white/[0.06] bg-card/50">
+              <Card className="lg:col-span-2 p-6">
                 <div className="flex items-center gap-2.5 mb-6">
                   <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
                     <Wrench className="w-3.5 h-3.5 text-primary" />
@@ -450,7 +450,7 @@ export default function CreateTask() {
 
                 <div className="space-y-5">
                   <div>
-                    <Label className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground/60 mb-2 block">Task Title *</Label>
+                    <Label className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground mb-2 block">Task Title *</Label>
                     <Input
                       required
                       placeholder="e.g., Replace eroded Stage 1 rotor blades"
@@ -472,7 +472,7 @@ export default function CreateTask() {
               </Card>
 
               {/* Side panel: scheduling + assignment */}
-              <Card className="p-6 border-white/[0.06] bg-card/50 space-y-5">
+              <Card className="p-6 space-y-5">
                 <div className="flex items-center gap-2.5 mb-1">
                   <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
                     <Package className="w-3.5 h-3.5 text-primary" />
