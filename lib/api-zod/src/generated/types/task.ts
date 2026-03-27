@@ -31,6 +31,9 @@ export interface Task {
   priority: TaskPriority;
   status: TaskStatus;
   totalMinutes?: number;
+  startedAt?: Date;
+  submittedAt?: Date;
+  completedAt?: Date;
   version: number;
   createdAt: Date;
   updatedAt?: Date;

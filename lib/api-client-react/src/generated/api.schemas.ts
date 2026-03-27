@@ -109,6 +109,9 @@ export interface Task {
   priority: TaskPriority;
   status: TaskStatus;
   totalMinutes?: number;
+  startedAt?: string;
+  submittedAt?: string;
+  completedAt?: string;
   version: number;
   createdAt: string;
   updatedAt?: string;

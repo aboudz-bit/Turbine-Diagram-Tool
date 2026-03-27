@@ -25,11 +25,11 @@ async function fetchNotifications(): Promise<RawNotification[]> {
 }
 
 export function NotificationBell() {
-  const [open, setOpen] = React.useState(() =>
-    new URLSearchParams(window.location.search).has("notifOpen")
-  )
-  const panelRef = React.useRef<HTMLDivElement>(null)
+  const [open, setOpen] = React.useState(false)
   const bellRef = React.useRef<HTMLButtonElement>(null)
+  const panelRef = React.useRef<HTMLDivElement>(null)
+
+  const [panelStyle, setPanelStyle] = React.useState<React.CSSProperties>({})
 
   const { data: notifications = [], refetch } = useQuery({
     queryKey: ["notifications"],
@@ -40,8 +40,22 @@ export function NotificationBell() {
 
   const unreadCount = notifications.filter((n) => !n.isRead).length
 
-  // Close panel when clicking outside
+  const handleToggle = () => {
+    if (!open && bellRef.current) {
+      const rect = bellRef.current.getBoundingClientRect()
+      setPanelStyle({
+        position: "fixed",
+        top: rect.bottom + 8,
+        right: window.innerWidth - rect.right,
+        zIndex: 9999,
+      })
+    }
+    setOpen((v) => !v)
+  }
+
+  // Close on outside click
   React.useEffect(() => {
+    if (!open) return
     function handleClickOutside(e: MouseEvent) {
       if (
         panelRef.current &&
@@ -52,17 +66,25 @@ export function NotificationBell() {
         setOpen(false)
       }
     }
-    if (open) {
-      document.addEventListener("mousedown", handleClickOutside)
-    }
+    document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [open])
 
+  // Close on Escape key
+  React.useEffect(() => {
+    if (!open) return
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false)
+    }
+    document.addEventListener("keydown", handleKeyDown)
+    return () => document.removeEventListener("keydown", handleKeyDown)
+  }, [open])
+
   return (
-    <div className="relative">
+    <>
       <button
         ref={bellRef}
-        onClick={() => setOpen((v) => !v)}
+        onClick={handleToggle}
         className={cn(
           "relative p-2 rounded-lg transition-colors",
           open
@@ -71,10 +93,11 @@ export function NotificationBell() {
         )}
         title={`${unreadCount} unread notification${unreadCount !== 1 ? "s" : ""}`}
         aria-label="Notifications"
+        aria-expanded={open}
       >
-        <Bell className="w-4.5 h-4.5 w-[18px] h-[18px]" />
+        <Bell className="w-[18px] h-[18px]" />
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 flex items-center justify-center text-[9px] font-bold bg-red-500 text-white rounded-full px-1 leading-none">
+          <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 flex items-center justify-center text-[9px] font-bold bg-red-500 text-white rounded-full px-1 leading-none pointer-events-none">
             {unreadCount > 99 ? "99+" : unreadCount}
           </span>
         )}
@@ -83,11 +106,12 @@ export function NotificationBell() {
       {open && (
         <NotificationPanel
           ref={panelRef}
+          style={panelStyle}
           notifications={notifications}
           onRefetch={refetch}
           onClose={() => setOpen(false)}
         />
       )}
-    </div>
+    </>
   )
 }

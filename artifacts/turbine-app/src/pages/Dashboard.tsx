@@ -436,7 +436,7 @@ export default function Dashboard() {
                 <PieChart>
                   <Pie
                     data={stats.byTurbine.map((t, i) => ({
-                      name: t.turbineName,
+                      name: t.assetName,
                       value: t.count,
                       fill: i === 0 ? '#0284c7' : i === 1 ? '#7c3aed' : '#059669',
                     }))}
