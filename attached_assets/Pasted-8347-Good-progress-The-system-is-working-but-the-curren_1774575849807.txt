@@ -1,0 +1,57 @@
+8347"}
+Good progress. The system is working, but the current result still feels like a polished demo more than a true industrial maintenance system. Refine it with these exact improvements:
+
+1) TURBINE VISUAL (HIGH PRIORITY)
+- The current live asset/turbine visualization is too abstract.
+- Redesign it to look more like a real simplified gas turbine structure.
+- Make the sections visually obvious:
+  - Compressor
+  - Mid Frame
+  - Turbine
+  - Turbine Exit Cylinder
+- The selector must feel meaningful, not just like colored bars.
+
+2) CREATE TASK PAGE (CRITICAL)
+- This is the most important workflow.
+- Make the section → stage → component flow much clearer visually.
+- Show it step-by-step with strong visual feedback.
+- When Turbine is selected, stage selection must appear immediately in a clean panel.
+- After stage selection, component choices must appear clearly.
+- Show the final selected path prominently:
+  Asset > Section > Stage > Component
+
+3) REDUCE EMPTY SPACE
+- Some screens feel too empty vertically.
+- Improve layout density and information balance.
+- Use space better on dashboard and overview screens.
+
+4) DASHBOARD IMPROVEMENT
+- Prioritize operational information:
+  - overdue tasks
+  - pending approvals
+  - in-progress tasks
+  - technician workload
+- Add a more useful visual hierarchy instead of only generic cards/charts.
+
+5) INDUSTRIAL UI FEEL
+- Keep the current dark theme, but make it feel more like a maintenance operations system and less like a generic app template.
+- Improve section headers, panel hierarchy, and data presentation.
+
+6) ASSET HISTORY PAGE
+- Make it more valuable operationally:
+  - repeated faults
+  - avg repair time
+  - last maintenance date
+  - open tasks by component
+  - most problematic stage/component
+
+7) TASK DETAIL PAGE
+- Make the work log, time log, QC section, and asset path feel more structured and professional.
+- Approved tasks must clearly look locked/read-only.
+
+8) FINAL POLISH
+- Review spacing, typography, and component sizing across all screens.
+- Keep the current foundation, but elevate it to production-quality industrial UX.
+
+Do not deploy yet.
+Refine the current product first and focus heavily on the turbine selector UX and Create Task wor

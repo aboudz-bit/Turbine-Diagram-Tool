@@ -43,15 +43,15 @@ artifacts-monorepo/
 ## Application: Maintenance Task & QC Management System
 
 ### Key Features
-- **Interactive SVG Turbine Diagram**: 4 clickable sections (Compressor, Mid Frame, Turbine, Exit Cylinder) with hover/selected states
+- **Realistic SVG Turbine Diagram**: Engineering-style cross-section with outer casing profiles, compressor blade rows (rotor/stator pairs), combustor cans in mid-frame, turbine stage zones (S1–S4), exit diffuser, shaft, section boundary dashes, label callouts above, pulse indicator on selection
 - **Task Lifecycle**: draft → assigned → in_progress → paused → submitted → under_qc → approved/rejected
-- **Time Tracking**: Start/pause/resume time entries per task with elapsed time display
-- **QC Review Flow**: Approve/reject with mandatory comments for rejection; approved tasks are locked
-- **Multi-step Create Task**: Step 1 selects turbine location via SVG + stage/component dropdowns, Step 2 fills task details
-- **Dashboard**: Live task stats (Total, Pending, Completed, Overdue with pulsing alert), Tasks by Stage bar chart, Recent Activity
-- **Task List**: Filterable list with priority color stripes, status badges, technician initials, hours, deadlines
-- **Task Detail**: Full task view with time tracking panel, time entries history, QC panel, QC review history
-- **Asset History**: Component maintenance history organized by section/stage tabs
+- **Time Tracking**: Start/pause/resume time entries per task with elapsed time display in table format
+- **QC Review Flow**: Approve/reject with mandatory comments for rejection; approved tasks show locked read-only state
+- **Multi-step Create Task**: Two-panel layout — turbine diagram (left) + location details panel (right). Section → Stage → Component flow with animated reveals. Section metadata shown per section type. Prominent live breadcrumb.
+- **Dashboard**: Operational hierarchy — alert strips (overdue/pending QC), 4 KPI cards (Total/In Progress/Pending QC/Overdue), Active Work and Requires Action panels with priority stripes, Tasks by Section bar chart, Technician Workload table with avatar initials.
+- **Task List**: Filterable list with priority color stripes, status badges, technician avatars, hours, deadlines
+- **Task Detail**: Structured header with status color strip, task meta grid (assignee/deadline/priority/estimated hours), table-style time log, QC history timeline, locked state for approved tasks
+- **Asset History**: Component cards with operational metrics (Total/Avg Repair/Open Tasks), color-coded borders (amber=open tasks), Last Maintenance display, expandable task history per component
 
 ### Pages & Routes
 - `/` — Dashboard with KPI cards, turbine diagram, charts
