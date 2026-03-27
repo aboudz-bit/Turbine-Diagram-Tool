@@ -24,8 +24,9 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
   submitted:  { label: 'Submitted',   color: 'text-purple-700',  bg: 'bg-purple-50',  border: 'border-purple-300' },
   under_qc:   { label: 'Under QC',    color: 'text-purple-700',  bg: 'bg-purple-50',  border: 'border-purple-300' },
   approved:   { label: 'Approved',    color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-300' },
-  rejected:   { label: 'Rejected',    color: 'text-red-700',     bg: 'bg-red-50',     border: 'border-red-300' },
-  overdue:    { label: 'Overdue',     color: 'text-red-700',     bg: 'bg-red-100',    border: 'border-red-400' },
+  rejected:         { label: 'Rejected',         color: 'text-red-700',     bg: 'bg-red-50',     border: 'border-red-300' },
+  revision_needed:  { label: 'Revision Needed', color: 'text-amber-700',   bg: 'bg-amber-50',  border: 'border-amber-300' },
+  overdue:          { label: 'Overdue',          color: 'text-red-700',     bg: 'bg-red-100',    border: 'border-red-400' },
 }
 
 const PRIORITY_COLORS = {
@@ -70,7 +71,7 @@ export default function TaskDetail() {
   const priorityColor = PRIORITY_COLORS[task.priority as keyof typeof PRIORITY_COLORS] || 'bg-slate-400'
 
   const handleStart = async () => {
-    await startMutation.mutateAsync({ taskId, data: { userId: 1 } })
+    await startMutation.mutateAsync({ taskId, data: {} })
     refetch()
   }
   const handlePause = async () => {
@@ -81,7 +82,7 @@ export default function TaskDetail() {
     refetch()
   }
   const handleResume = async () => {
-    await resumeMutation.mutateAsync({ taskId, data: { userId: 1 } })
+    await resumeMutation.mutateAsync({ taskId })
     refetch()
   }
   const handleSubmitForQc = async () => {
@@ -89,7 +90,7 @@ export default function TaskDetail() {
   }
   const handleQcSubmit = async (decision: 'approved' | 'rejected') => {
     if (decision === 'rejected' && !qcComment) return
-    await qcMutation.mutateAsync({ taskId, data: { decision, comments: qcComment, reviewerId: 1 } })
+    await qcMutation.mutateAsync({ taskId, data: { decision, comments: qcComment } })
     refetch()
   }
 

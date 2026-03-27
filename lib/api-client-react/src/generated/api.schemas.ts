@@ -5,6 +5,31 @@
  * Maintenance Task & QC Management System API
  * OpenAPI spec version: 0.2.0
  */
+export interface LoginInput {
+  userId: number;
+}
+
+export type UserRole = (typeof UserRole)[keyof typeof UserRole];
+
+export const UserRole = {
+  engineer: "engineer",
+  supervisor: "supervisor",
+  site_manager: "site_manager",
+  technician: "technician",
+} as const;
+
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: UserRole;
+}
+
+export interface LoginResult {
+  token: string;
+  user: User;
+}
+
 export interface HealthStatus {
   status: string;
 }
@@ -57,6 +82,7 @@ export const TaskStatus = {
   under_qc: "under_qc",
   approved: "approved",
   rejected: "rejected",
+  revision_needed: "revision_needed",
   overdue: "overdue",
 } as const;
 
@@ -83,6 +109,7 @@ export interface Task {
   priority: TaskPriority;
   status: TaskStatus;
   totalMinutes?: number;
+  version: number;
   createdAt: string;
   updatedAt?: string;
 }
@@ -99,20 +126,9 @@ export interface ComponentHistory {
   tasks: Task[];
 }
 
-export type UserRole = (typeof UserRole)[keyof typeof UserRole];
-
-export const UserRole = {
-  engineer: "engineer",
-  supervisor: "supervisor",
-  site_manager: "site_manager",
-  technician: "technician",
-} as const;
-
-export interface User {
-  id: number;
-  name: string;
-  email: string;
-  role: UserRole;
+export interface TaskListResponse {
+  data: Task[];
+  total: number;
 }
 
 export interface TimeEntry {
@@ -215,17 +231,19 @@ export const UpdateTaskStatusInputStatus = {
   under_qc: "under_qc",
   approved: "approved",
   rejected: "rejected",
+  revision_needed: "revision_needed",
   overdue: "overdue",
 } as const;
 
 export interface UpdateTaskStatusInput {
   status: UpdateTaskStatusInputStatus;
+  version: number;
   pauseReason?: string;
   qcComment?: string;
 }
 
 export interface StartTimeInput {
-  userId: number;
+  [key: string]: unknown;
 }
 
 export interface PauseTimeInput {
@@ -243,11 +261,12 @@ export const QcReviewInputDecision = {
 export interface QcReviewInput {
   decision: QcReviewInputDecision;
   comments?: string;
-  reviewerId: number;
 }
 
 export type ListTasksParams = {
   status?: string;
   assignedTo?: number;
   sectionId?: number;
+  limit?: number;
+  offset?: number;
 };

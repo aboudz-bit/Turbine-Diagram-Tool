@@ -10,4 +10,6 @@ export type ListTasksParams = {
   status?: string;
   assignedTo?: number;
   sectionId?: number;
+  limit?: number;
+  offset?: number;
 };

@@ -5,7 +5,9 @@
  * Maintenance Task & QC Management System API
  * OpenAPI spec version: 0.2.0
  */
+import type { Task } from "./task";
 
-export interface StartTimeInput {
-  [key: string]: unknown;
+export interface TaskListResponse {
+  data: Task[];
+  total: number;
 }

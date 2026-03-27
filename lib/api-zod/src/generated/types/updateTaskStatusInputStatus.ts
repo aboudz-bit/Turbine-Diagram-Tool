@@ -18,5 +18,6 @@ export const UpdateTaskStatusInputStatus = {
   under_qc: "under_qc",
   approved: "approved",
   rejected: "rejected",
+  revision_needed: "revision_needed",
   overdue: "overdue",
 } as const;

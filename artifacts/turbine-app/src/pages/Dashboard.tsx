@@ -51,7 +51,8 @@ function SectionHeader({ icon: Icon, label, action, onAction }: {
 }
 
 export default function Dashboard() {
-  const { data: tasks, isLoading } = useListTasks()
+  const { data: taskResponse, isLoading } = useListTasks()
+  const tasks = taskResponse?.data
   const { data: stats, isLoading: statsLoading } = useGetDashboardStats()
   const [, setLocation] = useLocation()
 

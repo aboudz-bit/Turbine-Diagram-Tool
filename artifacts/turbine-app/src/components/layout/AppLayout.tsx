@@ -1,8 +1,9 @@
 import * as React from "react"
 import { Link, useLocation } from "wouter"
-import { LayoutDashboard, ListTodo, PlusCircle, History, Settings, Activity } from "lucide-react"
+import { LayoutDashboard, ListTodo, PlusCircle, History, Settings, Activity, LogOut } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AnimatePresence, motion } from "framer-motion"
+import { useAuth } from "@/hooks/useAuth"
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -10,6 +11,26 @@ const navItems = [
   { href: "/create-task", label: "Create Task", icon: PlusCircle },
   { href: "/history", label: "Asset History", icon: History },
 ]
+
+function UserIdentity() {
+  const { user, logout } = useAuth()
+  if (!user) return null
+  const initials = user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+  return (
+    <div className="flex items-center gap-3">
+      <div className="text-right hidden sm:block">
+        <div className="text-sm font-semibold text-foreground">{user.name}</div>
+        <div className="text-[10px] text-muted-foreground font-medium tracking-wide uppercase">{user.role.replace('_', ' ')}</div>
+      </div>
+      <div className="h-9 w-9 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center font-display font-bold text-xs text-primary">
+        {initials}
+      </div>
+      <button onClick={logout} className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Sign out">
+        <LogOut className="w-4 h-4" />
+      </button>
+    </div>
+  )
+}
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation()
@@ -89,15 +110,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
 
           {/* User identity */}
-          <div className="flex items-center gap-3">
-            <div className="text-right hidden sm:block">
-              <div className="text-sm font-semibold text-foreground">Admin User</div>
-              <div className="text-[10px] text-muted-foreground font-medium tracking-wide uppercase">Site Manager</div>
-            </div>
-            <div className="h-9 w-9 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center font-display font-bold text-xs text-primary">
-              AU
-            </div>
-          </div>
+          <UserIdentity />
         </header>
 
         {/* Page Content */}
