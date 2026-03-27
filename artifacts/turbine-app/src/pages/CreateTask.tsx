@@ -487,8 +487,7 @@ export default function CreateTask() {
       setLocation('/tasks')
     } catch (err) {
       console.error('[CreateTask] Failed to create task', err)
-      // ApiError shape: err.data = parsed body, err.status = HTTP code
-      const apiErr = err as { data?: { error?: string; details?: Record<string, string[]> }; status?: number }
+      const apiErr = err as { data?: { error?: string; details?: Record<string, string[]> }; status?: number; message?: string }
       let message: string
       if (apiErr?.data?.error) {
         message = apiErr.data.error
@@ -502,7 +501,7 @@ export default function CreateTask() {
       } else if (!apiErr?.status) {
         message = 'Server unavailable. Please check your connection and try again.'
       } else {
-        message = 'An unexpected error occurred. Please try again.'
+        message = apiErr.message || 'An unexpected error occurred. Please try again.'
       }
       toast({ title: 'Failed to create task', description: message, variant: 'destructive' })
     }
