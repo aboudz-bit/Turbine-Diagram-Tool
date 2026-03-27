@@ -485,9 +485,10 @@ export default function CreateTask() {
         message = apiErr.data.error
         if (apiErr.data.details) {
           const fields = Object.entries(apiErr.data.details)
+            .filter(([, msgs]) => Array.isArray(msgs) && msgs.length > 0)
             .map(([f, msgs]) => `${f}: ${(msgs as string[]).join(', ')}`)
             .join('; ')
-          message += ` (${fields})`
+          if (fields) message += ` (${fields})`
         }
       } else if (!apiErr?.status) {
         message = 'Server unavailable. Please check your connection and try again.'

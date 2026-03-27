@@ -19,28 +19,6 @@ import {
   UpdateTaskStatusBody,
   ListTasksQueryParams,
 } from "@workspace/api-zod";
-
-/**
- * Patched CreateTaskBody: the generated schema uses zod.date() for deadline,
- * but JSON request bodies always contain strings, not Date objects.
- * We wrap safeParse to pre-coerce the deadline field before delegating to the
- * original schema, keeping the fix local without importing zod directly.
- */
-const CreateTaskBodyPatched = {
-  safeParse(data: unknown) {
-    if (data && typeof data === "object" && "deadline" in data) {
-      const d = data as Record<string, unknown>;
-      if (typeof d.deadline === "string") {
-        const parsed = new Date(d.deadline);
-        if (!isNaN(parsed.getTime())) {
-          d.deadline = parsed;
-        }
-        // If invalid, leave as string — Zod will reject it with a clear error
-      }
-    }
-    return CreateTaskBody.safeParse(data);
-  },
-};
 import {
   taskBaseQuery,
   buildTaskRow,
@@ -140,7 +118,7 @@ router.get(
 router.post(
   "/tasks",
   requireRole("engineer", "supervisor", "site_manager"),
-  validateBody(CreateTaskBodyPatched),
+  validateBody(CreateTaskBody),
   async (req, res) => {
     try {
       const {
@@ -156,6 +134,7 @@ router.post(
         priority,
       } = req.body;
 
+      console.log("CreateTask Payload:", req.body);
       req.log.info(
         { userId: req.user?.id, role: req.user?.role, assetId, sectionId, stageId, componentId, assignedToId, priority },
         "Creating task",
@@ -228,12 +207,11 @@ router.post(
 
       res.status(201).json(full);
     } catch (err) {
+      console.error("CreateTask Error:", err, req.body);
       req.log.error({ err, body: req.body }, "Failed to create task");
-      const isDev = process.env.NODE_ENV !== "production";
-      res.status(500).json({
-        error: isDev
-          ? `Task creation failed: ${(err as Error)?.message ?? "unknown error"}`
-          : "Internal server error",
+      res.status(400).json({
+        error: (err as Error)?.message || "Create task failed",
+        details: err,
       });
     }
   },
