@@ -1,4 +1,4 @@
-import express, { type Express } from "express";
+import express, { type Express, type Request, type Response, type NextFunction } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
 import router from "./routes";
@@ -38,5 +38,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", router);
+
+// Global Express error handler — catches synchronous throws from route handlers
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+app.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {
+  logger.error({ err, method: req.method, url: req.url }, "Unhandled route error");
+  if (!res.headersSent) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 
 export default app;

@@ -1,9 +1,12 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
-import { qcReviewsTable, tasksTable, usersTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { qcReviewsTable, tasksTable, usersTable, signaturesTable } from "@workspace/db";
+import { eq, and } from "drizzle-orm";
 import { validateBody } from "../middleware/validate";
 import { SubmitQcReviewBody } from "@workspace/api-zod";
+import { requireRole } from "../middleware/auth";
+import { createNotification, notifyRoles } from "../lib/notifications";
+import { logAuditEvent } from "../lib/auditLog";
 
 const router: IRouter = Router();
 
@@ -35,6 +38,7 @@ router.get("/tasks/:taskId/qc", async (req, res) => {
 
 router.post(
   "/tasks/:taskId/qc",
+  requireRole("engineer", "supervisor", "site_manager"),
   validateBody(SubmitQcReviewBody),
   async (req, res): Promise<void> => {
     try {
@@ -49,7 +53,7 @@ router.post(
         return;
       }
 
-      // Verify task exists and is in a reviewable state
+      // Fetch task first — status must be valid before signature check
       const [task] = await db
         .select()
         .from(tasksTable)
@@ -67,7 +71,25 @@ router.post(
         return;
       }
 
-      // Wrap in transaction
+      // Require supervisor QC approval signature before approving
+      if (decision === "approved") {
+        const [qcSig] = await db
+          .select()
+          .from(signaturesTable)
+          .where(
+            and(
+              eq(signaturesTable.taskId, taskId),
+              eq(signaturesTable.signatureType, "supervisor_qc_approval"),
+            ),
+          );
+        if (!qcSig) {
+          res.status(400).json({
+            error: "Supervisor/engineer QC approval signature required before approving.",
+          });
+          return;
+        }
+      }
+
       const review = await db.transaction(async (tx) => {
         const [newReview] = await tx
           .insert(qcReviewsTable)
@@ -92,6 +114,31 @@ router.post(
 
         return newReview;
       });
+
+      // Notifications
+      const notificationType = decision === "approved" ? "task_approved" as const : "task_rejected" as const;
+      const notificationTitle = decision === "approved" ? "Task Approved" : "Task Rejected";
+      const notificationMsg = decision === "approved"
+        ? `Task "${task.title}" has been QC approved and is now complete.`
+        : `Task "${task.title}" was rejected: ${comments}`;
+
+      if (task.assignedToId) {
+        await createNotification(task.assignedToId, taskId, notificationType, notificationTitle, notificationMsg).catch(() => {});
+      }
+      if (task.createdById && task.createdById !== task.assignedToId) {
+        await createNotification(task.createdById, taskId, notificationType, notificationTitle, notificationMsg).catch(() => {});
+      }
+
+      // Audit event
+      const auditAction = decision === "approved" ? "task_approved" : "task_rejected";
+      await logAuditEvent({
+        taskId,
+        actorId: reviewerId,
+        action: auditAction,
+        entityType: "qc_review",
+        entityId: review.id,
+        details: { decision, comments: comments ?? null },
+      }).catch(() => {});
 
       res.status(201).json({
         id: review.id,

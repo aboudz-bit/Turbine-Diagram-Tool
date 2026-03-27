@@ -229,7 +229,7 @@ export const ListTasksResponse = zod.object({
  * @summary Create a new task
  */
 export const CreateTaskBody = zod.object({
-  title: zod.string(),
+  title: zod.string().min(1, "Title is required"),
   description: zod.string().optional(),
   assetId: zod.number(),
   sectionId: zod.number(),
@@ -237,7 +237,7 @@ export const CreateTaskBody = zod.object({
   componentId: zod.number().optional(),
   assignedToId: zod.number().optional(),
   estimatedHours: zod.number().optional(),
-  deadline: zod.date().optional(),
+  deadline: zod.coerce.date().optional(),
   priority: zod.enum(["high", "medium", "low"]),
 });
 
@@ -300,6 +300,7 @@ export const GetTaskResponse = zod
             endTime: zod.date().optional(),
             durationMinutes: zod.number().optional(),
             pauseReason: zod.string().optional(),
+            status: zod.enum(["running", "paused", "completed"]).optional(),
             isActive: zod.boolean(),
           }),
         )
@@ -327,6 +328,7 @@ export const GetTaskResponse = zod
           endTime: zod.date().optional(),
           durationMinutes: zod.number().optional(),
           pauseReason: zod.string().optional(),
+          status: zod.enum(["running", "paused", "completed"]).optional(),
           isActive: zod.boolean(),
         })
         .optional(),
@@ -413,6 +415,7 @@ export const ListTimeEntriesResponseItem = zod.object({
   endTime: zod.date().optional(),
   durationMinutes: zod.number().optional(),
   pauseReason: zod.string().optional(),
+  status: zod.enum(["running", "paused", "completed"]).optional(),
   isActive: zod.boolean(),
 });
 export const ListTimeEntriesResponse = zod.array(ListTimeEntriesResponseItem);
@@ -446,6 +449,7 @@ export const PauseTimeTrackingResponse = zod.object({
   endTime: zod.date().optional(),
   durationMinutes: zod.number().optional(),
   pauseReason: zod.string().optional(),
+  status: zod.enum(["running", "paused", "completed"]).optional(),
   isActive: zod.boolean(),
 });
 
@@ -454,6 +458,105 @@ export const PauseTimeTrackingResponse = zod.object({
  */
 export const ResumeTimeTrackingParams = zod.object({
   taskId: zod.coerce.number(),
+});
+
+/**
+ * @summary Stop active work session (marks as completed)
+ */
+export const StopTimeTrackingParams = zod.object({
+  taskId: zod.coerce.number(),
+});
+
+export const StopTimeTrackingResponse = zod.object({
+  id: zod.number(),
+  taskId: zod.number(),
+  userId: zod.number(),
+  userName: zod.string().optional(),
+  startTime: zod.date(),
+  endTime: zod.date().optional(),
+  durationMinutes: zod.number().optional(),
+  pauseReason: zod.string().optional(),
+  status: zod.enum(["running", "paused", "completed"]).optional(),
+  isActive: zod.boolean(),
+});
+
+/**
+ * @summary List attachments for a task
+ */
+export const ListAttachmentsParams = zod.object({
+  taskId: zod.coerce.number(),
+});
+
+export const ListAttachmentsResponseItem = zod.object({
+  id: zod.number(),
+  taskId: zod.number(),
+  uploadedByUserId: zod.number(),
+  uploaderName: zod.string().optional(),
+  fileName: zod.string(),
+  mimeType: zod.string(),
+  fileSize: zod.number(),
+  storageUrl: zod.string(),
+  attachmentType: zod.enum(["image", "file"]),
+  createdAt: zod.date(),
+});
+export const ListAttachmentsResponse = zod.array(ListAttachmentsResponseItem);
+
+/**
+ * @summary Save attachment metadata after GCS upload
+ */
+export const CreateAttachmentParams = zod.object({
+  taskId: zod.coerce.number(),
+});
+
+export const CreateAttachmentBody = zod.object({
+  fileName: zod.string(),
+  mimeType: zod.string(),
+  fileSize: zod.number().optional(),
+  storageUrl: zod.string(),
+});
+
+/**
+ * @summary Delete an attachment
+ */
+export const DeleteAttachmentParams = zod.object({
+  taskId: zod.coerce.number(),
+  attachmentId: zod.coerce.number(),
+});
+
+/**
+ * @summary Get audit log for a task
+ */
+export const GetTaskAuditLogParams = zod.object({
+  taskId: zod.coerce.number(),
+});
+
+export const GetTaskAuditLogResponseItem = zod.object({
+  id: zod.number(),
+  action: zod.string(),
+  actionLabel: zod.string(),
+  entityType: zod.string(),
+  entityId: zod.number(),
+  taskId: zod.number().optional(),
+  actorId: zod.number().optional(),
+  actorName: zod.string(),
+  actorRole: zod.string().optional(),
+  details: zod.record(zod.string(), zod.unknown()).optional(),
+  createdAt: zod.date(),
+});
+export const GetTaskAuditLogResponse = zod.array(GetTaskAuditLogResponseItem);
+
+/**
+ * @summary Request a presigned URL for file upload
+ */
+export const RequestUploadUrlBody = zod.object({
+  name: zod.string(),
+  size: zod.number().optional(),
+  contentType: zod.string(),
+});
+
+export const RequestUploadUrlResponse = zod.object({
+  uploadURL: zod.string(),
+  objectPath: zod.string(),
 });
 
 /**
@@ -487,6 +590,94 @@ export const SubmitQcReviewBody = zod.object({
 });
 
 /**
+ * @summary List electronic signatures for a task
+ */
+export const ListSignaturesParams = zod.object({
+  taskId: zod.coerce.number(),
+});
+
+export const ListSignaturesResponseItem = zod.object({
+  id: zod.number(),
+  taskId: zod.number(),
+  userId: zod.number(),
+  signatureType: zod.enum(["technician_completion", "supervisor_qc_approval"]),
+  signerName: zod.string(),
+  signerRole: zod.string(),
+  createdAt: zod.date(),
+});
+export const ListSignaturesResponse = zod.array(ListSignaturesResponseItem);
+
+/**
+ * @summary Add an electronic signature to a task
+ */
+export const AddSignatureParams = zod.object({
+  taskId: zod.coerce.number(),
+});
+
+export const AddSignatureBody = zod.object({
+  signatureType: zod.enum(["technician_completion", "supervisor_qc_approval"]),
+  signatureData: zod
+    .string()
+    .describe("Base64-encoded PNG image of the signature"),
+});
+
+/**
+ * @summary List notifications for the current user
+ */
+export const ListNotificationsResponseItem = zod.object({
+  id: zod.number(),
+  userId: zod.number(),
+  taskId: zod.number().optional(),
+  type: zod.enum([
+    "task_assigned",
+    "task_submitted",
+    "task_rejected",
+    "task_revision_needed",
+    "task_approved",
+    "task_overdue",
+  ]),
+  title: zod.string(),
+  message: zod.string(),
+  isRead: zod.boolean(),
+  createdAt: zod.date(),
+});
+export const ListNotificationsResponse = zod.array(
+  ListNotificationsResponseItem,
+);
+
+/**
+ * @summary Mark all notifications as read
+ */
+export const MarkAllNotificationsReadResponse = zod.object({
+  success: zod.boolean().optional(),
+});
+
+/**
+ * @summary Mark a single notification as read
+ */
+export const MarkNotificationReadParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const MarkNotificationReadResponse = zod.object({
+  id: zod.number(),
+  userId: zod.number(),
+  taskId: zod.number().optional(),
+  type: zod.enum([
+    "task_assigned",
+    "task_submitted",
+    "task_rejected",
+    "task_revision_needed",
+    "task_approved",
+    "task_overdue",
+  ]),
+  title: zod.string(),
+  message: zod.string(),
+  isRead: zod.boolean(),
+  createdAt: zod.date(),
+});
+
+/**
  * @summary Get dashboard statistics
  */
 export const GetDashboardStatsResponse = zod.object({
@@ -515,6 +706,34 @@ export const GetDashboardStatsResponse = zod.object({
       }),
     )
     .optional(),
+  byTurbine: zod
+    .array(
+      zod.object({
+        assetName: zod.string(),
+        assetModel: zod.string(),
+        count: zod.number(),
+      }),
+    )
+    .optional(),
   overdueCount: zod.number(),
   approvalRate: zod.number().optional(),
+  totalLoggedHours: zod.number().optional(),
+  activeSessionCount: zod.number().optional(),
+  recentActivity: zod
+    .array(
+      zod.object({
+        id: zod.number(),
+        action: zod.string(),
+        actionLabel: zod.string(),
+        entityType: zod.string(),
+        entityId: zod.number(),
+        taskId: zod.number().optional(),
+        actorId: zod.number().optional(),
+        actorName: zod.string(),
+        actorRole: zod.string().optional(),
+        details: zod.record(zod.string(), zod.unknown()).optional(),
+        createdAt: zod.date(),
+      }),
+    )
+    .optional(),
 });

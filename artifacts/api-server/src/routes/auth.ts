@@ -5,6 +5,27 @@ import { signToken, requireAuth } from "../middleware/auth";
 
 const router: IRouter = Router();
 
+// Public: list all users (needed by the login screen — no auth required)
+router.get("/users", async (req, res): Promise<void> => {
+  try {
+    const users = await db
+      .select({
+        id: usersTable.id,
+        name: usersTable.name,
+        email: usersTable.email,
+        role: usersTable.role,
+      })
+      .from(usersTable)
+      .orderBy(usersTable.name);
+
+    res.json(users);
+  } catch (err) {
+    req.log.error({ err }, "Failed to list users");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Public: login by userId (no password — dev/staging picker flow)
 router.post("/auth/login", async (req, res): Promise<void> => {
   try {
     const { userId } = req.body;
@@ -46,6 +67,7 @@ router.post("/auth/login", async (req, res): Promise<void> => {
   }
 });
 
+// Protected: return the current user's profile (used for session verification)
 router.get("/auth/me", requireAuth, async (req, res): Promise<void> => {
   try {
     const [user] = await db

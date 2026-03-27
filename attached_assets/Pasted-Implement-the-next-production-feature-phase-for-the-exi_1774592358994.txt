@@ -1,0 +1,277 @@
+Implement the next production feature phase for the existing Maintenance Task & QC Management System.
+
+IMPORTANT:
+- Keep the current UI/UX and backend architecture stable
+- Do not refactor core flows unless required
+- Extend the system safely
+- Preserve all existing turbine-type-aware logic, templates, QC rules, time tracking, optimistic locking, and auth
+
+This phase must add 3 major capabilities:
+
+1) ELECTRONIC SIGNATURE
+2) NOTIFICATIONS
+3) ROLE PERMISSIONS
+
+========================================
+PHASE A — ELECTRONIC SIGNATURE
+========================================
+
+Goal:
+Allow technicians and supervisors to sign tasks electronically in a structured, auditable way.
+
+Requirements:
+
+1. Add signature support to task execution and QC approval flow
+- Technician can add signature before final Submit
+- Supervisor/Engineer can add signature when approving QC
+- Store:
+  - signer name
+  - signer role
+  - taskId
+  - signedAt
+  - signature image data or stored file path
+  - signature type:
+    - technician_completion
+    - supervisor_qc_approval
+
+2. UI
+- Add a signature pad using a canvas-based component
+- Buttons:
+  - Clear
+  - Save Signature
+- Show saved signature preview
+- Show signature timestamp and signer identity
+- In Task Detail:
+  - technician signature section
+  - supervisor approval signature section
+- Approved tasks should display signatures in read-only mode
+
+3. Validation rules
+- Technician signature required before Submit
+- Supervisor signature required before final Approve
+- Reject does not require signature
+- Prevent duplicate conflicting signatures of the same type unless explicitly replaced
+
+4. Backend
+- Add signatures table/model
+- Add endpoints:
+  - save task signature
+  - get task signatures
+  - replace signature (optional, controlled)
+- Ensure auth user identity is used, not client-supplied signer identity
+- Include signatures in task detail response
+
+5. Audit
+- Log signature creation / replacement in audit logs if audit log exists
+- If no audit log table exists yet, create a minimal audit log implementation for signature actions only
+
+========================================
+PHASE B — NOTIFICATIONS
+========================================
+
+Goal:
+Add in-app notifications tied to the real workflow.
+
+Requirements:
+
+1. Notification types
+- task_assigned
+- task_submitted
+- task_rejected
+- task_revision_needed
+- task_approved
+- task_overdue
+
+2. Trigger rules
+- When a task is assigned:
+  -> notify assigned technician
+- When technician submits task:
+  -> notify relevant supervisor/engineer users
+- When QC rejects:
+  -> notify assigned technician
+- When QC approves:
+  -> notify assigned technician and creator if different
+- When task becomes overdue:
+  -> notify assigned technician + supervisory users
+
+3. Delivery scope
+Phase 1:
+- In-app notifications only
+- Notification bell/icon in the layout header/sidebar
+- Unread count badge
+- Notification list page or slideout panel
+- Mark as read
+- Mark all as read
+
+4. Notification data model
+Store:
+- id
+- userId
+- taskId (nullable if needed)
+- type
+- title
+- message
+- isRead
+- createdAt
+
+5. UI requirements
+- Clean Siemens-style light theme
+- unread badge visible
+- grouped by Today / Earlier if easy
+- clicking a notification navigates to related task detail when applicable
+
+6. Overdue behavior
+- Use existing computed overdue logic
+- Add a safe mechanism so overdue notifications do not spam repeatedly
+- Only notify once per task overdue event unless status changes and becomes overdue again
+
+========================================
+PHASE C — ROLE PERMISSIONS
+========================================
+
+Goal:
+Enforce real operational permissions based on user role.
+
+Roles:
+- site_manager
+- engineer
+- supervisor
+- technician
+
+Requirements:
+
+1. Permission rules
+Technician:
+- view only assigned tasks (or tasks relevant to them)
+- start / pause / resume work
+- add notes
+- add execution checklist data
+- add technician signature
+- submit task
+- cannot approve/reject QC
+- cannot create tasks unless explicitly allowed later
+
+Supervisor:
+- view all operational tasks
+- review submitted tasks
+- approve / reject QC
+- sign QC approval
+- view notifications
+- may create tasks
+
+Engineer:
+- create tasks
+- assign technicians
+- review tasks
+- approve / reject QC
+- sign QC approval
+- view dashboards/reports
+- view notifications
+
+Site Manager:
+- broad visibility across all tasks
+- create tasks
+- assign tasks
+- review and approve
+- full dashboard/report visibility
+- user/operations oversight
+
+2. Backend authorization
+- Do not rely on frontend checks only
+- Add server-side authorization middleware/helpers
+- Protect endpoints by role
+Examples:
+- create task -> engineer / supervisor / site_manager
+- QC approve/reject -> engineer / supervisor / site_manager
+- start/pause/resume/submit -> technician on own assigned task, or authorized operational roles if needed
+- notifications -> only for authenticated user’s own notifications unless manager/admin access is intentionally added
+
+3. Frontend permission gating
+- Hide or disable actions user cannot perform
+- Examples:
+  - technician should not see approve/reject buttons
+  - technician should not see create-task action if not allowed
+  - supervisor/engineer should see QC controls
+- AppLayout can show user role clearly
+
+4. Data seeding
+Add realistic demo users for:
+- 1 site manager
+- 1 engineer
+- 1 supervisor
+- 2 technicians
+
+========================================
+DATABASE / API CHANGES
+========================================
+
+Add/update models and endpoints as needed for:
+- signatures
+- notifications
+- role-based authorization
+- task detail response including signatures and actionable permissions
+
+Keep OpenAPI spec updated.
+Regenerate client + Zod schemas.
+Keep backend typecheck/build clean.
+Keep frontend build clean.
+
+========================================
+UX INTEGRATION RULES
+========================================
+
+1. Do not redesign the app from scratch
+2. Preserve current Siemens-style light UI
+3. Integrate these features naturally into:
+- Task Detail
+- Create Task
+- App layout/header/sidebar
+- Notifications panel/page
+
+4. Keep flows intuitive:
+Technician flow:
+- open assigned task
+- work
+- sign
+- submit
+
+Supervisor/Engineer flow:
+- review
+- sign approval
+- approve or reject
+
+========================================
+VALIDATION / TESTING
+========================================
+
+Add or update integration tests for:
+1. technician cannot approve QC
+2. supervisor/engineer can approve QC
+3. technician signature required before submit
+4. supervisor signature required before approve
+5. notification created on assign
+6. notification created on submit
+7. notification created on reject
+8. notification created on approve
+9. overdue notification created once
+10. unauthorized role gets 403 where applicable
+
+========================================
+DELIVERABLES
+========================================
+
+Implement this safely and incrementally.
+
+At the end provide:
+1. summary of what was added
+2. files changed
+3. schema changes
+4. new endpoints
+5. test coverage added
+6. any technical debt or limitations still remaining
+
+Do not start a new major feature after this.
+Only implement:
+- electronic signature
+- notifications
+- role permissions

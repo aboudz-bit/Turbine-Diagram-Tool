@@ -1,6 +1,14 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 
+process.on("uncaughtException", (err) => {
+  logger.error({ err }, "Uncaught exception — server will continue");
+});
+
+process.on("unhandledRejection", (reason) => {
+  logger.error({ err: reason }, "Unhandled promise rejection — server will continue");
+});
+
 const rawPort = process.env["PORT"];
 
 if (!rawPort) {

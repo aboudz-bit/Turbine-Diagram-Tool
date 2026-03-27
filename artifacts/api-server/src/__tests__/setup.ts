@@ -8,7 +8,12 @@ import {
   tasksTable,
   timeEntriesTable,
   qcReviewsTable,
+  signaturesTable,
+  notificationsTable,
+  auditLogTable,
+  attachmentsTable,
 } from "@workspace/db";
+import { eq, and } from "drizzle-orm";
 import { signToken, type AuthUser } from "../middleware/auth";
 
 // Seed data IDs
@@ -47,7 +52,11 @@ export function getComponentId() { return componentId; }
 export async function seedTestData() {
   if (seeded) return;
 
-  // Clean in reverse dependency order
+  // Clean in reverse dependency order (audit_log before users to avoid FK violation)
+  await db.delete(auditLogTable);
+  await db.delete(attachmentsTable);
+  await db.delete(notificationsTable);
+  await db.delete(signaturesTable);
   await db.delete(qcReviewsTable);
   await db.delete(timeEntriesTable);
   await db.delete(tasksTable);
@@ -105,6 +114,10 @@ export async function seedTestData() {
 }
 
 export async function cleanupTestData() {
+  await db.delete(auditLogTable);
+  await db.delete(attachmentsTable);
+  await db.delete(notificationsTable);
+  await db.delete(signaturesTable);
   await db.delete(qcReviewsTable);
   await db.delete(timeEntriesTable);
   await db.delete(tasksTable);
@@ -117,4 +130,40 @@ export async function closePool() {
 
 export function authHeader(user: AuthUser): string {
   return `Bearer ${signToken(user)}`;
+}
+
+/** Insert a technician_completion signature directly for a task (bypasses the API for test setup). */
+export async function insertTechSignature(taskId: number): Promise<void> {
+  await db.delete(signaturesTable).where(
+    and(
+      eq(signaturesTable.taskId, taskId),
+      eq(signaturesTable.signatureType, "technician_completion"),
+    ),
+  );
+  await db.insert(signaturesTable).values({
+    taskId,
+    userId: TEST_TECHNICIAN.id,
+    signatureType: "technician_completion",
+    signatureData: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+    signerName: TEST_TECHNICIAN.name,
+    signerRole: "technician",
+  });
+}
+
+/** Insert a supervisor_qc_approval signature directly for a task (bypasses the API for test setup). */
+export async function insertSupSignature(taskId: number): Promise<void> {
+  await db.delete(signaturesTable).where(
+    and(
+      eq(signaturesTable.taskId, taskId),
+      eq(signaturesTable.signatureType, "supervisor_qc_approval"),
+    ),
+  );
+  await db.insert(signaturesTable).values({
+    taskId,
+    userId: TEST_SUPERVISOR.id,
+    signatureType: "supervisor_qc_approval",
+    signatureData: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+    signerName: TEST_SUPERVISOR.name,
+    signerRole: "supervisor",
+  });
 }

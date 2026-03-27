@@ -4,12 +4,14 @@ import { LayoutDashboard, ListTodo, PlusCircle, History, Settings, Activity, Log
 import { cn } from "@/lib/utils"
 import { AnimatePresence, motion } from "framer-motion"
 import { useAuth } from "@/hooks/useAuth"
+import { usePermissions } from "@/hooks/usePermissions"
+import { NotificationBell } from "@/components/NotificationBell"
 
-const navItems = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/tasks", label: "Task List", icon: ListTodo },
-  { href: "/create-task", label: "Create Task", icon: PlusCircle },
-  { href: "/history", label: "Asset History", icon: History },
+const ALL_NAV_ITEMS = [
+  { href: "/", label: "Dashboard", icon: LayoutDashboard, requireCreate: false },
+  { href: "/tasks", label: "Task List", icon: ListTodo, requireCreate: false },
+  { href: "/create-task", label: "Create Task", icon: PlusCircle, requireCreate: true },
+  { href: "/history", label: "Asset History", icon: History, requireCreate: false },
 ]
 
 function UserIdentity() {
@@ -34,6 +36,9 @@ function UserIdentity() {
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation()
+  const { canCreateTask } = usePermissions()
+
+  const navItems = ALL_NAV_ITEMS.filter(item => !item.requireCreate || canCreateTask)
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -67,7 +72,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     : "text-muted-foreground hover:bg-muted hover:text-foreground border border-transparent"
                 )}
               >
-                {/* Active left border */}
                 {isActive && (
                   <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-primary rounded-full" />
                 )}
@@ -109,8 +113,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             System Online
           </div>
 
-          {/* User identity */}
-          <UserIdentity />
+          {/* Right: Notification bell + User identity */}
+          <div className="flex items-center gap-3">
+            <NotificationBell />
+            <UserIdentity />
+          </div>
         </header>
 
         {/* Page Content */}

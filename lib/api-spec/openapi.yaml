@@ -13,6 +13,7 @@ tags:
   - name: tasks
   - name: time
   - name: qc
+  - name: storage
 security:
   - bearerAuth: []
 paths:
@@ -363,6 +364,129 @@ paths:
               schema:
                 $ref: "#/components/schemas/TimeEntry"
 
+  /tasks/{taskId}/time/stop:
+    post:
+      operationId: stopTimeTracking
+      tags: [time]
+      summary: Stop active work session (marks as completed)
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Stopped time entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimeEntry"
+
+  /tasks/{taskId}/attachments:
+    get:
+      operationId: listAttachments
+      tags: [tasks]
+      summary: List attachments for a task
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of attachments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Attachment"
+    post:
+      operationId: createAttachment
+      tags: [tasks]
+      summary: Save attachment metadata after GCS upload
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAttachmentInput"
+      responses:
+        "201":
+          description: Attachment saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Attachment"
+
+  /tasks/{taskId}/attachments/{attachmentId}:
+    delete:
+      operationId: deleteAttachment
+      tags: [tasks]
+      summary: Delete an attachment
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: attachmentId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Attachment deleted
+
+  /tasks/{taskId}/audit:
+    get:
+      operationId: getTaskAuditLog
+      tags: [tasks]
+      summary: Get audit log for a task
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Audit log entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AuditEntry"
+
+  /storage/uploads/request-url:
+    post:
+      operationId: requestUploadUrl
+      tags: [storage]
+      summary: Request a presigned URL for file upload
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RequestUploadUrlInput"
+      responses:
+        "200":
+          description: Presigned upload URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RequestUploadUrlResponse"
+
   /tasks/{taskId}/qc:
     get:
       operationId: listQcReviews
@@ -406,6 +530,100 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/QcReview"
+
+  /tasks/{taskId}/signatures:
+    get:
+      operationId: listSignatures
+      tags: [tasks]
+      summary: List electronic signatures for a task
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of signatures
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Signature"
+    post:
+      operationId: addSignature
+      tags: [tasks]
+      summary: Add an electronic signature to a task
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSignatureInput"
+      responses:
+        "201":
+          description: Signature saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Signature"
+
+  /notifications:
+    get:
+      operationId: listNotifications
+      tags: [notifications]
+      summary: List notifications for the current user
+      responses:
+        "200":
+          description: List of notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Notification"
+
+  /notifications/read-all:
+    patch:
+      operationId: markAllNotificationsRead
+      tags: [notifications]
+      summary: Mark all notifications as read
+      responses:
+        "200":
+          description: All notifications marked read
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+
+  /notifications/{id}/read:
+    patch:
+      operationId: markNotificationRead
+      tags: [notifications]
+      summary: Mark a single notification as read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Notification marked read
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Notification"
 
   /dashboard/stats:
     get:
@@ -653,6 +871,9 @@ components:
           type: integer
         pauseReason:
           type: string
+        status:
+          type: string
+          enum: [running, paused, completed]
         isActive:
           type: boolean
       required: [id, taskId, userId, startTime, isActive]
@@ -723,10 +944,30 @@ components:
               avgCompletionHours:
                 type: number
             required: [technicianId, technicianName, assignedTasks, completedTasks]
+        byTurbine:
+          type: array
+          items:
+            type: object
+            properties:
+              assetName:
+                type: string
+              assetModel:
+                type: string
+              count:
+                type: integer
+            required: [assetName, assetModel, count]
         overdueCount:
           type: integer
         approvalRate:
           type: number
+        totalLoggedHours:
+          type: number
+        activeSessionCount:
+          type: integer
+        recentActivity:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditEntry"
       required: [totalTasks, byStatus, bySection, byStage, overdueCount]
 
     CreateTaskInput:
@@ -790,3 +1031,147 @@ components:
         comments:
           type: string
       required: [decision]
+
+    Signature:
+      type: object
+      properties:
+        id:
+          type: integer
+        taskId:
+          type: integer
+        userId:
+          type: integer
+        signatureType:
+          type: string
+          enum: [technician_completion, supervisor_qc_approval]
+        signerName:
+          type: string
+        signerRole:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, taskId, userId, signatureType, signerName, signerRole, createdAt]
+
+    CreateSignatureInput:
+      type: object
+      properties:
+        signatureType:
+          type: string
+          enum: [technician_completion, supervisor_qc_approval]
+        signatureData:
+          type: string
+          description: Base64-encoded PNG image of the signature
+      required: [signatureType, signatureData]
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        taskId:
+          type: integer
+        type:
+          type: string
+          enum: [task_assigned, task_submitted, task_rejected, task_revision_needed, task_approved, task_overdue]
+        title:
+          type: string
+        message:
+          type: string
+        isRead:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, userId, type, title, message, isRead, createdAt]
+
+    Attachment:
+      type: object
+      properties:
+        id:
+          type: integer
+        taskId:
+          type: integer
+        uploadedByUserId:
+          type: integer
+        uploaderName:
+          type: string
+        fileName:
+          type: string
+        mimeType:
+          type: string
+        fileSize:
+          type: integer
+        storageUrl:
+          type: string
+        attachmentType:
+          type: string
+          enum: [image, file]
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, taskId, uploadedByUserId, fileName, mimeType, fileSize, storageUrl, attachmentType, createdAt]
+
+    CreateAttachmentInput:
+      type: object
+      properties:
+        fileName:
+          type: string
+        mimeType:
+          type: string
+        fileSize:
+          type: integer
+        storageUrl:
+          type: string
+      required: [fileName, mimeType, storageUrl]
+
+    AuditEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        action:
+          type: string
+        actionLabel:
+          type: string
+        entityType:
+          type: string
+        entityId:
+          type: integer
+        taskId:
+          type: integer
+        actorId:
+          type: integer
+        actorName:
+          type: string
+        actorRole:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, action, actionLabel, entityType, entityId, actorName, createdAt]
+
+    RequestUploadUrlInput:
+      type: object
+      properties:
+        name:
+          type: string
+        size:
+          type: integer
+        contentType:
+          type: string
+      required: [name, contentType]
+
+    RequestUploadUrlResponse:
+      type: object
+      properties:
+        uploadURL:
+          type: string
+        objectPath:
+          type: string
+      required: [uploadURL, objectPath]

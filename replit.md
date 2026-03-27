@@ -47,11 +47,18 @@ artifacts-monorepo/
 - **Task Lifecycle**: draft → assigned → in_progress → paused → submitted → under_qc → approved/rejected
 - **Time Tracking**: Start/pause/resume time entries per task with elapsed time display in table format
 - **QC Review Flow**: Approve/reject with mandatory comments for rejection; approved tasks show locked read-only state
-- **Multi-step Create Task**: Two-panel layout — turbine diagram (left) + location details panel (right). Section → Stage → Component flow with animated reveals. Section metadata shown per section type. Prominent live breadcrumb.
+- **Multi-step Create Task (turbine-type-aware)**: Turbine model selector (SGT-9000HL / SGT-8000H) → diagram click → stage/component flow. Model-aware section name resolution (e.g. "Combustion Chamber" for SGT-8000H vs "Mid Frame" for SGT-9000HL). Animated guided panel with sub-steps. Live breadcrumb.
+- **OEM Template Library**: `src/lib/turbineTemplates.ts` — 9 realistic inspection templates across both models (TBC inspection, seal clearance, borescope, combustor, compressor fouling, exhaust, blade erosion, combustor liner, inter-stage seal) with checklists, measurements, tolerances, OEM refs, and risk levels. Template picker in step 2 auto-fills task title + description.
+- **Turbine-Aware QC Rules**: `src/lib/qcRules.ts` — per-model per-section QC rules with mandatory/recommended classification, OEM procedure references (SI-2241-HL, SA-4410, etc.), and critical zone flagging. Shown as collapsible panel in both CreateTask (step 2) and TaskDetail.
+- **Critical Zone Detection**: SGT-9000HL Turbine section is marked CRITICAL — red banner + engineer sign-off warning. SGT-8000H shows amber warnings.
+- **Assets**: Two turbine assets in DB — SGT-9000HL Unit 1 (id=1, 4 sections, 5 stages) + SGT-8000H Unit 1 (id=34, 4 sections, 4 stages, 3 turbine stages)
 - **Dashboard**: Operational hierarchy — alert strips (overdue/pending QC), 4 KPI cards (Total/In Progress/Pending QC/Overdue), Active Work and Requires Action panels with priority stripes, Tasks by Section bar chart, Technician Workload table with avatar initials.
 - **Task List**: Filterable list with priority color stripes, status badges, technician avatars, hours, deadlines
 - **Task Detail**: Structured header with status color strip, task meta grid (assignee/deadline/priority/estimated hours), table-style time log, QC history timeline, locked state for approved tasks
 - **Asset History**: Component cards with operational metrics (Total/Avg Repair/Open Tasks), color-coded borders (amber=open tasks), Last Maintenance display, expandable task history per component
+- **Electronic Signatures (Phase A)**: Canvas-based signature pad (SignaturePad.tsx) for `technician_completion` and `supervisor_qc_approval`. Signatures stored as Base64 PNG in `signatures` table. Required before submit and before QC approve. Stored/displayed in TaskDetail with signer name + timestamp.
+- **In-App Notifications (Phase B)**: `notifications` table stores typed events. Bell icon with red unread badge in header (NotificationBell.tsx). Slide-down panel (NotificationPanel.tsx) shows 50 most recent with type badges, mark-all-read. Polls every 30s. Triggers: task_assigned (on create with assignedToId), task_submitted (to supervisors/engineers), task_approved/task_rejected (to assignee + creator).
+- **Role-Based Permissions (Phase C)**: `requireRole()` middleware factory on backend enforces access by role. `usePermissions()` hook on frontend. Create Task hidden from technicians (sidebar/mobile nav) and shows "Access Restricted" screen. QC Approve/Reject panel hidden from technicians. Submit flow requires technician signature first. Approve requires supervisor/QC signature first.
 
 ### Pages & Routes
 - `/` — Dashboard with KPI cards, turbine diagram, charts
@@ -72,43 +79,76 @@ artifacts-monorepo/
 - `asset_sections` — turbine sections per asset
 - `asset_stages` — stages within sections (blade counts)
 - `asset_components` — components within stages
-- `tasks` — main task entity with status/priority/deadline/timeEntries/qcReviews (TaskDetail response)
+- `tasks` — main task entity with status/priority/deadline/timeEntries/qcReviews/signatures (TaskDetail response)
 - `time_entries` — time tracking per task (start/end/duration/pauseReason)
 - `qc_reviews` — QC approval/rejection records with reviewer name
+- `signatures` — electronic signatures (taskId, userId, signatureType enum, signatureData Base64, signerName, signerRole)
+- `notifications` — in-app notifications (userId, taskId, type enum, title, message, isRead)
+- `audit_log` — audit trail (entityType, entityId, action, actorId, metadata JSON)
 
 ### Seed Data
 Run: `pnpm --filter @workspace/scripts run seed`
 - 5 demo users (2 engineers, 3 technicians) — default userId=1 (Admin User/Site Manager)
-- 1 SGT-9000HL asset with all sections, stages, and components
-- 5 sample tasks at various status stages
+- SGT-9000HL Unit 1 (id=1): 4 sections, 4 turbine stages, all components
+- SGT-8000H Unit 1 (id=34): 4 sections, 3 turbine stages (30–52 blades each)
+- 5 sample tasks at various lifecycle stages (in_progress, assigned, overdue, submitted, approved)
 
-### API Routes (v0.2)
+### Database Notes
+- `tasks.version` column was added via ALTER TABLE (not in original seed migration). Already in Drizzle schema (`lib/db/src/schema/tasks.ts`). Used for optimistic locking.
+- Both assets are seeded independently of the seed script (SGT-8000H was added via direct SQL insert).
+
+### API Routes (v0.3)
 - `GET /api/assets` — list assets
 - `GET /api/assets/:id/sections` — list sections
 - `GET /api/sections/:id/stages` — list stages
 - `GET /api/stages/:id/components` — list components
 - `GET /api/components/:id/history` — component maintenance history
 - `GET /api/users` — list users
-- `GET/POST /api/tasks` — list and create tasks
-- `GET /api/tasks/:id` — get task with timeEntries and qcReviews (TaskDetail)
-- `PATCH /api/tasks/:id/status` — update task status (locked when approved)
+- `GET /api/tasks` — list tasks (filtered by status/assignedTo/sectionId)
+- `POST /api/tasks` — create task (requires role: engineer/supervisor/site_manager)
+- `GET /api/tasks/:id` — get task with timeEntries, qcReviews, signatures (TaskDetail)
+- `PATCH /api/tasks/:id` — update task status (optimistic lock via version; submit requires tech signature)
 - `POST /api/tasks/:id/time` — start time tracking
 - `POST /api/tasks/:id/time/pause` — pause (requires reason)
 - `POST /api/tasks/:id/time/resume` — resume time tracking
 - `GET /api/tasks/:id/time` — list time entries
-- `POST /api/tasks/:id/qc` — submit QC review (approve/reject)
+- `GET /api/tasks/:id/signatures` — list signatures for task
+- `POST /api/tasks/:id/signatures` — add signature (replaces existing of same type)
+- `POST /api/tasks/:id/qc` — submit QC review (requires role; approve requires supervisor signature)
 - `GET /api/tasks/:id/qc` — list QC reviews
+- `GET /api/notifications` — list notifications for current user (last 50)
+- `PATCH /api/notifications/:id/read` — mark single notification as read
+- `PATCH /api/notifications/read-all` — mark all as read
 - `GET /api/dashboard/stats` — aggregated stats by status/section/stage + technician performance
 
 ### UI Components (turbine-app)
 - `src/components/TurbineDiagram.tsx` — SVG turbine selector with hover/selected states
-- `src/components/layout/AppLayout.tsx` — sidebar + mobile bottom nav
+- `src/components/layout/AppLayout.tsx` — sidebar + mobile bottom nav; role-aware (hides Create Task for technicians); notification bell in header
 - `src/components/ui/core.tsx` — Button, Card, Input, Badge, Label, Select, Textarea
+- `src/components/SignaturePad.tsx` — canvas-based electronic signature pad with Clear/Save; shows existing signature as read-only confirmed view
+- `src/components/NotificationBell.tsx` — bell icon with red unread badge; toggles NotificationPanel
+- `src/components/NotificationPanel.tsx` — slide-down notification list with type badges, mark-all-read; navigates to task on click
+- `src/hooks/usePermissions.ts` — role-based permission hook (canCreateTask, canApproveQc, isTechnician, etc.)
 - `src/pages/Dashboard.tsx` — overview with stats, charts, recent activity
 - `src/pages/Tasks.tsx` — task list with priority stripes, animated cards
-- `src/pages/TaskDetail.tsx` — full task view with time tracking and QC panel
-- `src/pages/CreateTask.tsx` — multi-step form with turbine selector and real DB IDs
+- `src/pages/TaskDetail.tsx` — full task view with time tracking, signature pads (tech + QC), role-gated QC panel, submit flow
+- `src/pages/CreateTask.tsx` — multi-step form with turbine selector; blocked with "Access Restricted" for technicians
 - `src/pages/AssetHistory.tsx` — component history with section/stage tabs
+
+## Known Technical Debt
+
+### Generated Client TypeScript Errors (non-blocking, tracked for later cleanup)
+These are pre-existing TS2305 "not exported" errors from the Orval-generated `@workspace/api-client-react` package. They do not affect runtime — Vite uses esbuild which strips types without checking.
+
+| Symbol | File | Issue |
+|--------|------|-------|
+| `useListUsers` | `LoginGate.tsx` | Hook name mismatch in generated client export |
+| `useListAssets` | `AssetHistory.tsx` | Hook name mismatch in generated client export |
+| `useGetComponentHistory` | `AssetHistory.tsx` | Hook name mismatch in generated client export |
+
+**Resolution path**: Re-run Orval codegen after aligning OpenAPI spec hook naming, or rename the import sites to match the actual generated export names. Scheduled for a dedicated client codegen cleanup pass.
+
+Implicit `any` parameters in `LoginGate.tsx` and `AssetHistory.tsx` are also pre-existing and non-blocking.
 
 ## TypeScript & Composite Projects
 

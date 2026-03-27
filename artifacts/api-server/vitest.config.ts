@@ -1,5 +1,8 @@
 import { defineConfig } from "vitest/config";
 
+const prodUrl = process.env.DATABASE_URL ?? "";
+const testDbUrl = prodUrl.replace("/heliumdb", "/turbine_test");
+
 export default defineConfig({
   test: {
     globals: true,
@@ -9,6 +12,9 @@ export default defineConfig({
     pool: "forks",
     poolOptions: {
       forks: { singleFork: true },
+    },
+    env: {
+      DATABASE_URL: testDbUrl || prodUrl,
     },
   },
 });

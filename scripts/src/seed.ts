@@ -166,6 +166,53 @@ async function seed() {
     },
   ]);
 
+  // ---------- SGT-8000H ----------
+  const [asset8000] = await db.insert(assetsTable).values({
+    name: "SGT-8000H Unit 1",
+    model: "SGT-8000H",
+  }).returning();
+
+  const sectionDefs8000 = [
+    { name: "Compressor", description: "15-stage axial compressor, Variable Inlet Guide Vanes, pressure ratio 19:1", order: 1 },
+    { name: "Combustion Chamber", description: "Can-annular combustors, DLE burners, low NOx emissions", order: 2 },
+    { name: "Turbine", description: "4-stage turbine, TBC-coated blades, closed-loop cooling", order: 3 },
+    { name: "Exhaust", description: "Annular exhaust diffuser, axial exhaust flow", order: 4 },
+  ];
+
+  const sections8000 = await db.insert(assetSectionsTable).values(
+    sectionDefs8000.map(s => ({ ...s, assetId: asset8000.id }))
+  ).returning();
+
+  const turbineSection8000 = sections8000.find(s => s.name === "Turbine")!;
+  const compressorSection8000 = sections8000.find(s => s.name === "Compressor")!;
+
+  const turbineStages8000 = [
+    { name: "Stage 1", stageNumber: 1, bladeCountMin: 92, bladeCountMax: 96 },
+    { name: "Stage 2", stageNumber: 2, bladeCountMin: 80, bladeCountMax: 84 },
+    { name: "Stage 3", stageNumber: 3, bladeCountMin: 68, bladeCountMax: 72 },
+    { name: "Stage 4", stageNumber: 4, bladeCountMin: 56, bladeCountMax: 60 },
+  ];
+
+  const stages8000 = await db.insert(assetStagesTable).values(
+    turbineStages8000.map(s => ({ ...s, sectionId: turbineSection8000.id }))
+  ).returning();
+
+  const compressorStage8000 = await db.insert(assetStagesTable).values({
+    name: "Compressor Assembly",
+    stageNumber: 1,
+    sectionId: compressorSection8000.id,
+  }).returning();
+
+  const componentNames8000 = ["Rotor Blade", "Stator Vane", "Seal", "Casing", "Shaft"];
+  for (const stage of stages8000) {
+    await db.insert(assetComponentsTable).values(
+      componentNames8000.map(name => ({ name, stageId: stage.id }))
+    );
+  }
+  await db.insert(assetComponentsTable).values(
+    componentNames8000.map(name => ({ name, stageId: compressorStage8000[0].id }))
+  );
+
   console.log("Database seeded successfully.");
 }
 

@@ -1,0 +1,145 @@
+Fix the backend/server instability and the Create Task failure in SAFE DEBUG MODE.
+
+Current problems:
+1. Sometimes after logout the app shows:
+   - "Unable to reach the server"
+   This suggests the API server crashes, restarts, or becomes unreachable.
+
+2. Create Task is failing with:
+   - "Failed to create task"
+   - "An unexpected error occurred. Please try again."
+
+Goal:
+- Stabilize the server
+- Find the exact root cause
+- Fix task creation cleanly
+- Do not refactor unrelated working features
+
+Requirements:
+
+==================================================
+PART 1 — SERVER STABILITY
+==================================================
+
+1. Check API server logs immediately when:
+- logging out
+- creating a task
+- switching accounts
+
+2. Find any:
+- uncaught exception
+- unhandled promise rejection
+- process restart
+- DB connection error
+- auth/token error
+- route crash
+
+3. Inspect logout flow carefully:
+- /auth/logout or equivalent
+- ensure logout only clears session/token state
+- ensure it does NOT:
+  - close DB pool
+  - terminate process
+  - trigger infinite auth/query loop
+  - throw uncaught errors
+
+4. Add defensive error handling:
+- wrap logout route logic in try/catch
+- add route-level logging
+- add global server error logging if missing
+
+5. Verify server remains alive after:
+- login
+- logout
+- re-login
+- switching users
+
+==================================================
+PART 2 — CREATE TASK FAILURE
+==================================================
+
+1. Reproduce the exact failing create-task request.
+
+2. Add temporary logging in the create task handler:
+- request body
+- authenticated user id + role
+- selected asset/section/stage/component ids
+- validation result
+- DB insert result
+- exact thrown error if any
+
+3. Check frontend payload from CreateTask.tsx:
+Log before mutation:
+- title
+- description
+- assetId
+- sectionId
+- stageId
+- componentId
+- assignedToId
+- estimatedHours
+- deadline
+- priority
+
+4. Verify backend validation:
+- required fields are present
+- field names match backend expectation exactly
+- no stale IDs
+- no invalid enum value
+- no missing section/stage mapping
+
+5. Verify DB constraints:
+- foreign keys valid
+- selected section/stage/component belong to selected turbine
+- assigned user exists
+- asset exists
+- deadline format valid
+- numeric fields valid
+
+6. Improve the error response:
+Instead of generic:
+- "An unexpected error occurred"
+Return a useful message in development/staging, for example:
+- invalid section for selected asset
+- missing stage id
+- invalid assignee
+- validation failed
+- DB insert failed
+
+7. Fix root cause, not just UI message.
+
+==================================================
+PART 3 — FRONTEND ERROR HANDLING
+==================================================
+
+1. In CreateTask:
+- show loading while creating
+- disable duplicate submit while request is pending
+- surface backend error message if available
+- do not silently fail
+
+2. If server is unreachable:
+- show a clear "Server unavailable" message
+- do not wipe session unnecessarily
+
+==================================================
+PART 4 — VALIDATION
+==================================================
+
+After fixing, verify:
+1. login works
+2. logout works
+3. server stays alive after logout
+4. re-login works
+5. switching users works
+6. create task works for SGT-9000HL
+7. create task works for SGT-8000H
+8. task appears in task list
+9. no server crash during the whole flow
+
+At the end provide:
+- root cause of server instability
+- root cause of create task failure
+- files changed
+- exact fix applied
+- confirmation that server remains stable
