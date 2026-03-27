@@ -194,9 +194,21 @@ export default function TaskDetail() {
   const { canApproveQc } = usePermissions()
   const { user } = useAuth()
 
-  const { data: task, isLoading, refetch } = useGetTask(taskId, {
+  const { data: task, isLoading, isError, error, refetch } = useGetTask(taskId, {
     query: { enabled: !!taskId }
   })
+
+  React.useEffect(() => {
+    if (task) {
+      console.log("[TaskDetail] task loaded:", task)
+    }
+  }, [task])
+
+  React.useEffect(() => {
+    if (isError) {
+      console.error("[TaskDetail] failed to load task:", error)
+    }
+  }, [isError, error])
 
   const startMutation = useStartTimeTracking()
   const pauseMutation = usePauseTimeTracking()
@@ -235,10 +247,33 @@ export default function TaskDetail() {
     return () => clearInterval(id)
   }, [task?.activeTimeEntry?.startTime])
 
-  if (isLoading || !task) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    )
+  }
+
+  if (isError || !task) {
+    const message = error instanceof Error
+      ? error.message
+      : "Failed to load task. Please try again."
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4 text-center px-6">
+        <div className="w-12 h-12 rounded-full bg-red-50 border border-red-200 flex items-center justify-center">
+          <AlertCircle className="w-6 h-6 text-red-500" />
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-foreground">Unable to load task</p>
+          <p className="text-sm text-muted-foreground mt-1">{message}</p>
+        </div>
+        <button
+          onClick={() => refetch()}
+          className="text-sm text-primary hover:underline font-medium"
+        >
+          Try again
+        </button>
       </div>
     )
   }
