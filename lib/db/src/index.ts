@@ -5,13 +5,14 @@ import * as schema from "./schema";
 const { Pool } = pg;
 
 if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
+  console.error(
+    "[db] WARNING: DATABASE_URL is not set — database queries will fail. " +
+    "Set this in Replit Secrets or your environment.",
   );
 }
 
 export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: process.env.DATABASE_URL || "postgresql://localhost:5432/turbine_qc",
   // Recover from PostgreSQL restarts: retry idle connections
   idleTimeoutMillis: 30_000,
   connectionTimeoutMillis: 5_000,
