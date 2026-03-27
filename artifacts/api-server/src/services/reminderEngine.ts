@@ -216,16 +216,21 @@ async function scanLongRunningTasks(): Promise<number> {
  * Run a single scan cycle (deadline + long-running).
  */
 export async function runScanCycle(): Promise<{ deadlineReminders: number; longRunningAlerts: number }> {
-  const deadlineReminders = await scanDeadlineReminders();
-  const longRunningAlerts = await scanLongRunningTasks();
+  try {
+    const deadlineReminders = await scanDeadlineReminders();
+    const longRunningAlerts = await scanLongRunningTasks();
 
-  if (deadlineReminders > 0 || longRunningAlerts > 0) {
-    console.log(
-      `[reminderEngine] Scan complete: ${deadlineReminders} deadline reminders, ${longRunningAlerts} long-running alerts`,
-    );
+    if (deadlineReminders > 0 || longRunningAlerts > 0) {
+      console.log(
+        `[reminderEngine] Scan complete: ${deadlineReminders} deadline reminders, ${longRunningAlerts} long-running alerts`,
+      );
+    }
+
+    return { deadlineReminders, longRunningAlerts };
+  } catch (err) {
+    console.error("[reminderEngine] Scan cycle crashed (non-fatal):", err);
+    return { deadlineReminders: 0, longRunningAlerts: 0 };
   }
-
-  return { deadlineReminders, longRunningAlerts };
 }
 
 /**
