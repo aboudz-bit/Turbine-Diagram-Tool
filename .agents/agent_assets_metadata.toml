@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "HXSW2vDra1zau5u675iHa"
+uri = "file://UAT_SCRIPT.md"
+type = "text"
+title = "UAT Script — Maintenance Task & QC Management System"

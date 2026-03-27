@@ -119,6 +119,21 @@ Run: `pnpm --filter @workspace/scripts run seed`
 - `src/pages/CreateTask.tsx` — multi-step form with turbine selector and real DB IDs
 - `src/pages/AssetHistory.tsx` — component history with section/stage tabs
 
+## Known Technical Debt
+
+### Generated Client TypeScript Errors (non-blocking, tracked for later cleanup)
+These are pre-existing TS2305 "not exported" errors from the Orval-generated `@workspace/api-client-react` package. They do not affect runtime — Vite uses esbuild which strips types without checking.
+
+| Symbol | File | Issue |
+|--------|------|-------|
+| `useListUsers` | `LoginGate.tsx` | Hook name mismatch in generated client export |
+| `useListAssets` | `AssetHistory.tsx` | Hook name mismatch in generated client export |
+| `useGetComponentHistory` | `AssetHistory.tsx` | Hook name mismatch in generated client export |
+
+**Resolution path**: Re-run Orval codegen after aligning OpenAPI spec hook naming, or rename the import sites to match the actual generated export names. Scheduled for a dedicated client codegen cleanup pass.
+
+Implicit `any` parameters in `LoginGate.tsx` and `AssetHistory.tsx` are also pre-existing and non-blocking.
+
 ## TypeScript & Composite Projects
 
 Every package extends `tsconfig.base.json` which sets `composite: true`. The root `tsconfig.json` lists all packages as project references.
