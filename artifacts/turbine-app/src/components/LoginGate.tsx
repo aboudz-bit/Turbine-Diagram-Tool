@@ -2,15 +2,24 @@ import * as React from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useListUsers } from "@workspace/api-client-react";
 import { Card, Button } from "@/components/ui/core";
-import { Activity, ChevronRight } from "lucide-react";
+import { Activity, ChevronRight, RefreshCw, AlertCircle } from "lucide-react";
 
 export function LoginGate({ children }: { children: React.ReactNode }) {
   const { user, login, isLoading: authLoading } = useAuth();
-  const { data: users, isLoading: usersLoading } = useListUsers(
-    !user ? undefined : { query: { enabled: false } },
-  );
-  const [loggingIn, setLoggingIn] = React.useState(false);
 
+  const {
+    data: users,
+    isLoading: usersLoading,
+    isError: usersError,
+    refetch,
+  } = useListUsers(
+    user ? { query: { enabled: false } } : undefined,
+  );
+
+  const [loggingIn, setLoggingIn] = React.useState<number | null>(null);
+  const [loginError, setLoginError] = React.useState<string | null>(null);
+
+  // Show a full-screen spinner while auth state is being restored from storage
   if (authLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-background">
@@ -19,16 +28,21 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // Authenticated — render the app
   if (user) {
     return <>{children}</>;
   }
 
   const handleLogin = async (userId: number) => {
-    setLoggingIn(true);
+    setLoggingIn(userId);
+    setLoginError(null);
     try {
       await login(userId);
-    } catch {
-      setLoggingIn(false);
+    } catch (err) {
+      setLoginError(
+        err instanceof Error ? err.message : "Login failed. Please try again.",
+      );
+      setLoggingIn(null);
     }
   };
 
@@ -51,22 +65,49 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
           <div className="flex justify-center py-4">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
           </div>
+        ) : usersError ? (
+          <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4 space-y-3 text-center">
+            <AlertCircle className="w-5 h-5 text-destructive mx-auto" />
+            <p className="text-xs text-destructive font-medium">
+              Unable to reach the server
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              Check your connection and try again.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => refetch()}
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Retry
+            </Button>
+          </div>
+        ) : !users?.length ? (
+          <div className="text-center py-4 text-xs text-muted-foreground">
+            No accounts found. Please seed the database.
+          </div>
         ) : (
           <div className="space-y-2">
-            {users?.map((u) => (
+            {users.map((u) => (
               <button
                 key={u.id}
                 onClick={() => handleLogin(u.id)}
-                disabled={loggingIn}
+                disabled={loggingIn !== null}
                 className="w-full flex items-center gap-3 p-3 rounded-lg border border-border hover:border-primary/40 hover:bg-primary/5 transition-colors text-left group disabled:opacity-50"
               >
                 <div className="h-9 w-9 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center font-display font-bold text-xs text-primary flex-shrink-0">
-                  {u.name
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")
-                    .slice(0, 2)
-                    .toUpperCase()}
+                  {loggingIn === u.id ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary" />
+                  ) : (
+                    u.name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")
+                      .slice(0, 2)
+                      .toUpperCase()
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-semibold text-foreground truncate">
@@ -80,6 +121,12 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
               </button>
             ))}
           </div>
+        )}
+
+        {loginError && (
+          <p className="text-xs text-destructive text-center -mt-2">
+            {loginError}
+          </p>
         )}
       </Card>
     </div>
