@@ -3,12 +3,11 @@
  * Do not edit manually.
  * Api
  * Maintenance Task & QC Management System API
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 import * as zod from "zod";
 
 /**
- * Returns server health status
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
@@ -73,11 +72,79 @@ export const ListComponentsResponseItem = zod.object({
 export const ListComponentsResponse = zod.array(ListComponentsResponseItem);
 
 /**
+ * @summary Get task history for a component
+ */
+export const GetComponentHistoryParams = zod.object({
+  componentId: zod.coerce.number(),
+});
+
+export const GetComponentHistoryResponse = zod.object({
+  componentId: zod.number(),
+  componentName: zod.string(),
+  stageName: zod.string().optional(),
+  sectionName: zod.string().optional(),
+  totalTasks: zod.number(),
+  completedTasks: zod.number(),
+  avgRepairHours: zod.number().optional(),
+  lastMaintenanceDate: zod.date().optional(),
+  tasks: zod.array(
+    zod.object({
+      id: zod.number(),
+      title: zod.string(),
+      description: zod.string().optional(),
+      assetId: zod.number().optional(),
+      assetName: zod.string().optional(),
+      sectionId: zod.number().optional(),
+      sectionName: zod.string().optional(),
+      stageId: zod.number().optional(),
+      stageName: zod.string().optional(),
+      stageNumber: zod.number().optional(),
+      bladeCountMin: zod.number().optional(),
+      bladeCountMax: zod.number().optional(),
+      componentId: zod.number().optional(),
+      componentName: zod.string().optional(),
+      assignedToId: zod.number().optional(),
+      assignedToName: zod.string().optional(),
+      createdById: zod.number().optional(),
+      estimatedHours: zod.string().optional(),
+      deadline: zod.date().optional(),
+      priority: zod.enum(["high", "medium", "low"]),
+      status: zod.enum([
+        "draft",
+        "assigned",
+        "in_progress",
+        "paused",
+        "submitted",
+        "under_qc",
+        "approved",
+        "rejected",
+        "overdue",
+      ]),
+      totalMinutes: zod.number().optional(),
+      createdAt: zod.date(),
+      updatedAt: zod.date().optional(),
+    }),
+  ),
+});
+
+/**
+ * @summary List all users
+ */
+export const ListUsersResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  email: zod.string(),
+  role: zod.enum(["engineer", "supervisor", "site_manager", "technician"]),
+});
+export const ListUsersResponse = zod.array(ListUsersResponseItem);
+
+/**
  * @summary List all tasks
  */
 export const ListTasksQueryParams = zod.object({
   status: zod.coerce.string().optional(),
   assignedTo: zod.coerce.number().optional(),
+  sectionId: zod.coerce.number().optional(),
 });
 
 export const ListTasksResponseItem = zod.object({
@@ -90,12 +157,15 @@ export const ListTasksResponseItem = zod.object({
   sectionName: zod.string().optional(),
   stageId: zod.number().optional(),
   stageName: zod.string().optional(),
+  stageNumber: zod.number().optional(),
+  bladeCountMin: zod.number().optional(),
+  bladeCountMax: zod.number().optional(),
   componentId: zod.number().optional(),
   componentName: zod.string().optional(),
   assignedToId: zod.number().optional(),
   assignedToName: zod.string().optional(),
   createdById: zod.number().optional(),
-  estimatedHours: zod.number().optional(),
+  estimatedHours: zod.string().optional(),
   deadline: zod.date().optional(),
   priority: zod.enum(["high", "medium", "low"]),
   status: zod.enum([
@@ -109,6 +179,7 @@ export const ListTasksResponseItem = zod.object({
     "rejected",
     "overdue",
   ]),
+  totalMinutes: zod.number().optional(),
   createdAt: zod.date(),
   updatedAt: zod.date().optional(),
 });
@@ -131,44 +202,94 @@ export const CreateTaskBody = zod.object({
 });
 
 /**
- * @summary Get task by ID
+ * @summary Get task by ID with full detail
  */
 export const GetTaskParams = zod.object({
   taskId: zod.coerce.number(),
 });
 
-export const GetTaskResponse = zod.object({
-  id: zod.number(),
-  title: zod.string(),
-  description: zod.string().optional(),
-  assetId: zod.number().optional(),
-  assetName: zod.string().optional(),
-  sectionId: zod.number().optional(),
-  sectionName: zod.string().optional(),
-  stageId: zod.number().optional(),
-  stageName: zod.string().optional(),
-  componentId: zod.number().optional(),
-  componentName: zod.string().optional(),
-  assignedToId: zod.number().optional(),
-  assignedToName: zod.string().optional(),
-  createdById: zod.number().optional(),
-  estimatedHours: zod.number().optional(),
-  deadline: zod.date().optional(),
-  priority: zod.enum(["high", "medium", "low"]),
-  status: zod.enum([
-    "draft",
-    "assigned",
-    "in_progress",
-    "paused",
-    "submitted",
-    "under_qc",
-    "approved",
-    "rejected",
-    "overdue",
-  ]),
-  createdAt: zod.date(),
-  updatedAt: zod.date().optional(),
-});
+export const GetTaskResponse = zod
+  .object({
+    id: zod.number(),
+    title: zod.string(),
+    description: zod.string().optional(),
+    assetId: zod.number().optional(),
+    assetName: zod.string().optional(),
+    sectionId: zod.number().optional(),
+    sectionName: zod.string().optional(),
+    stageId: zod.number().optional(),
+    stageName: zod.string().optional(),
+    stageNumber: zod.number().optional(),
+    bladeCountMin: zod.number().optional(),
+    bladeCountMax: zod.number().optional(),
+    componentId: zod.number().optional(),
+    componentName: zod.string().optional(),
+    assignedToId: zod.number().optional(),
+    assignedToName: zod.string().optional(),
+    createdById: zod.number().optional(),
+    estimatedHours: zod.string().optional(),
+    deadline: zod.date().optional(),
+    priority: zod.enum(["high", "medium", "low"]),
+    status: zod.enum([
+      "draft",
+      "assigned",
+      "in_progress",
+      "paused",
+      "submitted",
+      "under_qc",
+      "approved",
+      "rejected",
+      "overdue",
+    ]),
+    totalMinutes: zod.number().optional(),
+    createdAt: zod.date(),
+    updatedAt: zod.date().optional(),
+  })
+  .and(
+    zod.object({
+      timeEntries: zod
+        .array(
+          zod.object({
+            id: zod.number(),
+            taskId: zod.number(),
+            userId: zod.number(),
+            userName: zod.string().optional(),
+            startTime: zod.date(),
+            endTime: zod.date().optional(),
+            durationMinutes: zod.number().optional(),
+            pauseReason: zod.string().optional(),
+            isActive: zod.boolean(),
+          }),
+        )
+        .optional(),
+      qcReviews: zod
+        .array(
+          zod.object({
+            id: zod.number(),
+            taskId: zod.number(),
+            reviewerId: zod.number(),
+            reviewerName: zod.string().optional(),
+            decision: zod.enum(["approved", "rejected"]),
+            comments: zod.string().optional(),
+            createdAt: zod.date(),
+          }),
+        )
+        .optional(),
+      activeTimeEntry: zod
+        .object({
+          id: zod.number(),
+          taskId: zod.number(),
+          userId: zod.number(),
+          userName: zod.string().optional(),
+          startTime: zod.date(),
+          endTime: zod.date().optional(),
+          durationMinutes: zod.number().optional(),
+          pauseReason: zod.string().optional(),
+          isActive: zod.boolean(),
+        })
+        .optional(),
+    }),
+  );
 
 /**
  * @summary Update task status
@@ -203,12 +324,15 @@ export const UpdateTaskStatusResponse = zod.object({
   sectionName: zod.string().optional(),
   stageId: zod.number().optional(),
   stageName: zod.string().optional(),
+  stageNumber: zod.number().optional(),
+  bladeCountMin: zod.number().optional(),
+  bladeCountMax: zod.number().optional(),
   componentId: zod.number().optional(),
   componentName: zod.string().optional(),
   assignedToId: zod.number().optional(),
   assignedToName: zod.string().optional(),
   createdById: zod.number().optional(),
-  estimatedHours: zod.number().optional(),
+  estimatedHours: zod.string().optional(),
   deadline: zod.date().optional(),
   priority: zod.enum(["high", "medium", "low"]),
   status: zod.enum([
@@ -222,17 +346,132 @@ export const UpdateTaskStatusResponse = zod.object({
     "rejected",
     "overdue",
   ]),
+  totalMinutes: zod.number().optional(),
   createdAt: zod.date(),
   updatedAt: zod.date().optional(),
 });
 
 /**
- * @summary List all users
+ * @summary List time entries for a task
  */
-export const ListUsersResponseItem = zod.object({
-  id: zod.number(),
-  name: zod.string(),
-  email: zod.string(),
-  role: zod.enum(["engineer", "supervisor", "site_manager", "technician"]),
+export const ListTimeEntriesParams = zod.object({
+  taskId: zod.coerce.number(),
 });
-export const ListUsersResponse = zod.array(ListUsersResponseItem);
+
+export const ListTimeEntriesResponseItem = zod.object({
+  id: zod.number(),
+  taskId: zod.number(),
+  userId: zod.number(),
+  userName: zod.string().optional(),
+  startTime: zod.date(),
+  endTime: zod.date().optional(),
+  durationMinutes: zod.number().optional(),
+  pauseReason: zod.string().optional(),
+  isActive: zod.boolean(),
+});
+export const ListTimeEntriesResponse = zod.array(ListTimeEntriesResponseItem);
+
+/**
+ * @summary Start time tracking (creates an open entry)
+ */
+export const StartTimeTrackingParams = zod.object({
+  taskId: zod.coerce.number(),
+});
+
+export const StartTimeTrackingBody = zod.object({
+  userId: zod.number(),
+});
+
+/**
+ * @summary Pause active time tracking (requires reason)
+ */
+export const PauseTimeTrackingParams = zod.object({
+  taskId: zod.coerce.number(),
+});
+
+export const PauseTimeTrackingBody = zod.object({
+  reason: zod.string(),
+});
+
+export const PauseTimeTrackingResponse = zod.object({
+  id: zod.number(),
+  taskId: zod.number(),
+  userId: zod.number(),
+  userName: zod.string().optional(),
+  startTime: zod.date(),
+  endTime: zod.date().optional(),
+  durationMinutes: zod.number().optional(),
+  pauseReason: zod.string().optional(),
+  isActive: zod.boolean(),
+});
+
+/**
+ * @summary Resume time tracking (creates new open entry)
+ */
+export const ResumeTimeTrackingParams = zod.object({
+  taskId: zod.coerce.number(),
+});
+
+/**
+ * @summary List QC reviews for a task
+ */
+export const ListQcReviewsParams = zod.object({
+  taskId: zod.coerce.number(),
+});
+
+export const ListQcReviewsResponseItem = zod.object({
+  id: zod.number(),
+  taskId: zod.number(),
+  reviewerId: zod.number(),
+  reviewerName: zod.string().optional(),
+  decision: zod.enum(["approved", "rejected"]),
+  comments: zod.string().optional(),
+  createdAt: zod.date(),
+});
+export const ListQcReviewsResponse = zod.array(ListQcReviewsResponseItem);
+
+/**
+ * @summary Submit a QC review (approve or reject)
+ */
+export const SubmitQcReviewParams = zod.object({
+  taskId: zod.coerce.number(),
+});
+
+export const SubmitQcReviewBody = zod.object({
+  decision: zod.enum(["approved", "rejected"]),
+  comments: zod.string().optional(),
+  reviewerId: zod.number(),
+});
+
+/**
+ * @summary Get dashboard statistics
+ */
+export const GetDashboardStatsResponse = zod.object({
+  totalTasks: zod.number(),
+  byStatus: zod.record(zod.string(), zod.number()),
+  bySection: zod.array(
+    zod.object({
+      sectionName: zod.string(),
+      count: zod.number(),
+    }),
+  ),
+  byStage: zod.array(
+    zod.object({
+      stageName: zod.string(),
+      count: zod.number(),
+    }),
+  ),
+  technicianPerformance: zod
+    .array(
+      zod.object({
+        technicianId: zod.number(),
+        technicianName: zod.string(),
+        assignedTasks: zod.number(),
+        completedTasks: zod.number(),
+        avgCompletionHours: zod.number().optional(),
+      }),
+    )
+    .optional(),
+  overdueCount: zod.number(),
+  approvalRate: zod.number().optional(),
+});

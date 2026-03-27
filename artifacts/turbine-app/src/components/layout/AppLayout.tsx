@@ -1,6 +1,6 @@
 import * as React from "react"
 import { Link, useLocation } from "wouter"
-import { LayoutDashboard, ListTodo, PlusCircle, Settings, Menu, X, Activity } from "lucide-react"
+import { LayoutDashboard, ListTodo, PlusCircle, History, Settings, Menu, X, Activity } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/core"
 import { AnimatePresence, motion } from "framer-motion"
@@ -9,6 +9,7 @@ const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/tasks", label: "Task List", icon: ListTodo },
   { href: "/create-task", label: "Create Task", icon: PlusCircle },
+  { href: "/history", label: "Asset History", icon: History },
 ]
 
 export function AppLayout({ children }: { children: React.ReactNode }) {

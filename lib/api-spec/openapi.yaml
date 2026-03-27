@@ -1,25 +1,23 @@
 openapi: 3.1.0
 info:
   title: Api
-  version: 0.1.0
+  version: 0.2.0
   description: Maintenance Task & QC Management System API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
-    description: Health operations
   - name: assets
-    description: Asset and turbine section operations
   - name: tasks
-    description: Task management operations
+  - name: time
+  - name: qc
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -27,6 +25,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
   /assets:
     get:
       operationId: listAssets
@@ -41,6 +40,7 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Asset"
+
   /assets/{assetId}/sections:
     get:
       operationId: listSections
@@ -61,6 +61,7 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/AssetSection"
+
   /sections/{sectionId}/stages:
     get:
       operationId: listStages
@@ -81,6 +82,7 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/AssetStage"
+
   /stages/{stageId}/components:
     get:
       operationId: listComponents
@@ -101,6 +103,41 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/AssetComponent"
+
+  /components/{componentId}/history:
+    get:
+      operationId: getComponentHistory
+      tags: [assets]
+      summary: Get task history for a component
+      parameters:
+        - name: componentId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Component task history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ComponentHistory"
+
+  /users:
+    get:
+      operationId: listUsers
+      tags: [tasks]
+      summary: List all users
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+
   /tasks:
     get:
       operationId: listTasks
@@ -113,6 +150,11 @@ paths:
           schema:
             type: string
         - name: assignedTo
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: sectionId
           in: query
           required: false
           schema:
@@ -143,11 +185,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Task"
+
   /tasks/{taskId}:
     get:
       operationId: getTask
       tags: [tasks]
-      summary: Get task by ID
+      summary: Get task by ID with full detail
       parameters:
         - name: taskId
           in: path
@@ -156,11 +199,11 @@ paths:
             type: integer
       responses:
         "200":
-          description: Task detail
+          description: Task detail with time entries and QC reviews
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Task"
+                $ref: "#/components/schemas/TaskDetail"
     patch:
       operationId: updateTaskStatus
       tags: [tasks]
@@ -184,20 +227,152 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Task"
-  /users:
+
+  /tasks/{taskId}/time:
     get:
-      operationId: listUsers
-      tags: [tasks]
-      summary: List all users
+      operationId: listTimeEntries
+      tags: [time]
+      summary: List time entries for a task
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: integer
       responses:
         "200":
-          description: List of users
+          description: Time entries
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/User"
+                  $ref: "#/components/schemas/TimeEntry"
+    post:
+      operationId: startTimeTracking
+      tags: [time]
+      summary: Start time tracking (creates an open entry)
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StartTimeInput"
+      responses:
+        "201":
+          description: Created time entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimeEntry"
+
+  /tasks/{taskId}/time/pause:
+    post:
+      operationId: pauseTimeTracking
+      tags: [time]
+      summary: Pause active time tracking (requires reason)
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PauseTimeInput"
+      responses:
+        "200":
+          description: Paused time entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimeEntry"
+
+  /tasks/{taskId}/time/resume:
+    post:
+      operationId: resumeTimeTracking
+      tags: [time]
+      summary: Resume time tracking (creates new open entry)
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "201":
+          description: New time entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimeEntry"
+
+  /tasks/{taskId}/qc:
+    get:
+      operationId: listQcReviews
+      tags: [qc]
+      summary: List QC reviews for a task
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: QC review history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/QcReview"
+    post:
+      operationId: submitQcReview
+      tags: [qc]
+      summary: Submit a QC review (approve or reject)
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QcReviewInput"
+      responses:
+        "201":
+          description: QC review submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QcReview"
+
+  /dashboard/stats:
+    get:
+      operationId: getDashboardStats
+      tags: [tasks]
+      summary: Get dashboard statistics
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+
 components:
   schemas:
     HealthStatus:
@@ -205,8 +380,8 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
+
     Asset:
       type: object
       properties:
@@ -216,10 +391,8 @@ components:
           type: string
         model:
           type: string
-      required:
-        - id
-        - name
-        - model
+      required: [id, name, model]
+
     AssetSection:
       type: object
       properties:
@@ -233,11 +406,8 @@ components:
           type: string
         order:
           type: integer
-      required:
-        - id
-        - assetId
-        - name
-        - order
+      required: [id, assetId, name, order]
+
     AssetStage:
       type: object
       properties:
@@ -253,11 +423,8 @@ components:
           type: integer
         bladeCountMax:
           type: integer
-      required:
-        - id
-        - sectionId
-        - name
-        - stageNumber
+      required: [id, sectionId, name, stageNumber]
+
     AssetComponent:
       type: object
       properties:
@@ -267,10 +434,34 @@ components:
           type: integer
         name:
           type: string
-      required:
-        - id
-        - stageId
-        - name
+      required: [id, stageId, name]
+
+    ComponentHistory:
+      type: object
+      properties:
+        componentId:
+          type: integer
+        componentName:
+          type: string
+        stageName:
+          type: string
+        sectionName:
+          type: string
+        totalTasks:
+          type: integer
+        completedTasks:
+          type: integer
+        avgRepairHours:
+          type: number
+        lastMaintenanceDate:
+          type: string
+          format: date-time
+        tasks:
+          type: array
+          items:
+            $ref: "#/components/schemas/Task"
+      required: [componentId, componentName, totalTasks, completedTasks, tasks]
+
     User:
       type: object
       properties:
@@ -283,11 +474,8 @@ components:
         role:
           type: string
           enum: [engineer, supervisor, site_manager, technician]
-      required:
-        - id
-        - name
-        - email
-        - role
+      required: [id, name, email, role]
+
     Task:
       type: object
       properties:
@@ -309,6 +497,12 @@ components:
           type: integer
         stageName:
           type: string
+        stageNumber:
+          type: integer
+        bladeCountMin:
+          type: integer
+        bladeCountMax:
+          type: integer
         componentId:
           type: integer
         componentName:
@@ -320,7 +514,7 @@ components:
         createdById:
           type: integer
         estimatedHours:
-          type: number
+          type: string
         deadline:
           type: string
           format: date-time
@@ -330,18 +524,129 @@ components:
         status:
           type: string
           enum: [draft, assigned, in_progress, paused, submitted, under_qc, approved, rejected, overdue]
+        totalMinutes:
+          type: integer
         createdAt:
           type: string
           format: date-time
         updatedAt:
           type: string
           format: date-time
-      required:
-        - id
-        - title
-        - status
-        - priority
-        - createdAt
+      required: [id, title, status, priority, createdAt]
+
+    TaskDetail:
+      allOf:
+        - $ref: "#/components/schemas/Task"
+        - type: object
+          properties:
+            timeEntries:
+              type: array
+              items:
+                $ref: "#/components/schemas/TimeEntry"
+            qcReviews:
+              type: array
+              items:
+                $ref: "#/components/schemas/QcReview"
+            activeTimeEntry:
+              $ref: "#/components/schemas/TimeEntry"
+
+    TimeEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        taskId:
+          type: integer
+        userId:
+          type: integer
+        userName:
+          type: string
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        durationMinutes:
+          type: integer
+        pauseReason:
+          type: string
+        isActive:
+          type: boolean
+      required: [id, taskId, userId, startTime, isActive]
+
+    QcReview:
+      type: object
+      properties:
+        id:
+          type: integer
+        taskId:
+          type: integer
+        reviewerId:
+          type: integer
+        reviewerName:
+          type: string
+        decision:
+          type: string
+          enum: [approved, rejected]
+        comments:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, taskId, reviewerId, decision, createdAt]
+
+    DashboardStats:
+      type: object
+      properties:
+        totalTasks:
+          type: integer
+        byStatus:
+          type: object
+          additionalProperties:
+            type: integer
+        bySection:
+          type: array
+          items:
+            type: object
+            properties:
+              sectionName:
+                type: string
+              count:
+                type: integer
+            required: [sectionName, count]
+        byStage:
+          type: array
+          items:
+            type: object
+            properties:
+              stageName:
+                type: string
+              count:
+                type: integer
+            required: [stageName, count]
+        technicianPerformance:
+          type: array
+          items:
+            type: object
+            properties:
+              technicianId:
+                type: integer
+              technicianName:
+                type: string
+              assignedTasks:
+                type: integer
+              completedTasks:
+                type: integer
+              avgCompletionHours:
+                type: number
+            required: [technicianId, technicianName, assignedTasks, completedTasks]
+        overdueCount:
+          type: integer
+        approvalRate:
+          type: number
+      required: [totalTasks, byStatus, bySection, byStage, overdueCount]
+
     CreateTaskInput:
       type: object
       properties:
@@ -367,11 +672,8 @@ components:
         priority:
           type: string
           enum: [high, medium, low]
-      required:
-        - title
-        - assetId
-        - sectionId
-        - priority
+      required: [title, assetId, sectionId, priority]
+
     UpdateTaskStatusInput:
       type: object
       properties:
@@ -382,5 +684,30 @@ components:
           type: string
         qcComment:
           type: string
-      required:
-        - status
+      required: [status]
+
+    StartTimeInput:
+      type: object
+      properties:
+        userId:
+          type: integer
+      required: [userId]
+
+    PauseTimeInput:
+      type: object
+      properties:
+        reason:
+          type: string
+      required: [reason]
+
+    QcReviewInput:
+      type: object
+      properties:
+        decision:
+          type: string
+          enum: [approved, rejected]
+        comments:
+          type: string
+        reviewerId:
+          type: integer
+      required: [decision, reviewerId]

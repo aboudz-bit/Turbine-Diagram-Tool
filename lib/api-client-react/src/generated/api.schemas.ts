@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * Maintenance Task & QC Management System API
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 export interface HealthStatus {
   status: string;
@@ -38,22 +38,6 @@ export interface AssetComponent {
   name: string;
 }
 
-export type UserRole = (typeof UserRole)[keyof typeof UserRole];
-
-export const UserRole = {
-  engineer: "engineer",
-  supervisor: "supervisor",
-  site_manager: "site_manager",
-  technician: "technician",
-} as const;
-
-export interface User {
-  id: number;
-  name: string;
-  email: string;
-  role: UserRole;
-}
-
 export type TaskPriority = (typeof TaskPriority)[keyof typeof TaskPriority];
 
 export const TaskPriority = {
@@ -86,17 +70,115 @@ export interface Task {
   sectionName?: string;
   stageId?: number;
   stageName?: string;
+  stageNumber?: number;
+  bladeCountMin?: number;
+  bladeCountMax?: number;
   componentId?: number;
   componentName?: string;
   assignedToId?: number;
   assignedToName?: string;
   createdById?: number;
-  estimatedHours?: number;
+  estimatedHours?: string;
   deadline?: string;
   priority: TaskPriority;
   status: TaskStatus;
+  totalMinutes?: number;
   createdAt: string;
   updatedAt?: string;
+}
+
+export interface ComponentHistory {
+  componentId: number;
+  componentName: string;
+  stageName?: string;
+  sectionName?: string;
+  totalTasks: number;
+  completedTasks: number;
+  avgRepairHours?: number;
+  lastMaintenanceDate?: string;
+  tasks: Task[];
+}
+
+export type UserRole = (typeof UserRole)[keyof typeof UserRole];
+
+export const UserRole = {
+  engineer: "engineer",
+  supervisor: "supervisor",
+  site_manager: "site_manager",
+  technician: "technician",
+} as const;
+
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: UserRole;
+}
+
+export interface TimeEntry {
+  id: number;
+  taskId: number;
+  userId: number;
+  userName?: string;
+  startTime: string;
+  endTime?: string;
+  durationMinutes?: number;
+  pauseReason?: string;
+  isActive: boolean;
+}
+
+export type QcReviewDecision =
+  (typeof QcReviewDecision)[keyof typeof QcReviewDecision];
+
+export const QcReviewDecision = {
+  approved: "approved",
+  rejected: "rejected",
+} as const;
+
+export interface QcReview {
+  id: number;
+  taskId: number;
+  reviewerId: number;
+  reviewerName?: string;
+  decision: QcReviewDecision;
+  comments?: string;
+  createdAt: string;
+}
+
+export type TaskDetail = Task & {
+  timeEntries?: TimeEntry[];
+  qcReviews?: QcReview[];
+  activeTimeEntry?: TimeEntry;
+};
+
+export type DashboardStatsByStatus = { [key: string]: number };
+
+export type DashboardStatsBySectionItem = {
+  sectionName: string;
+  count: number;
+};
+
+export type DashboardStatsByStageItem = {
+  stageName: string;
+  count: number;
+};
+
+export type DashboardStatsTechnicianPerformanceItem = {
+  technicianId: number;
+  technicianName: string;
+  assignedTasks: number;
+  completedTasks: number;
+  avgCompletionHours?: number;
+};
+
+export interface DashboardStats {
+  totalTasks: number;
+  byStatus: DashboardStatsByStatus;
+  bySection: DashboardStatsBySectionItem[];
+  byStage: DashboardStatsByStageItem[];
+  technicianPerformance?: DashboardStatsTechnicianPerformanceItem[];
+  overdueCount: number;
+  approvalRate?: number;
 }
 
 export type CreateTaskInputPriority =
@@ -142,7 +224,30 @@ export interface UpdateTaskStatusInput {
   qcComment?: string;
 }
 
+export interface StartTimeInput {
+  userId: number;
+}
+
+export interface PauseTimeInput {
+  reason: string;
+}
+
+export type QcReviewInputDecision =
+  (typeof QcReviewInputDecision)[keyof typeof QcReviewInputDecision];
+
+export const QcReviewInputDecision = {
+  approved: "approved",
+  rejected: "rejected",
+} as const;
+
+export interface QcReviewInput {
+  decision: QcReviewInputDecision;
+  comments?: string;
+  reviewerId: number;
+}
+
 export type ListTasksParams = {
   status?: string;
   assignedTo?: number;
+  sectionId?: number;
 };

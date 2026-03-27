@@ -4,30 +4,30 @@ import { cn } from "@/lib/utils"
 
 export type TurbineSectionID = 'compressor' | 'mid-frame' | 'turbine' | 'exit-cylinder'
 
+export const SECTION_SLUG_MAP: Record<TurbineSectionID, string> = {
+  'compressor': 'Compressor',
+  'mid-frame': 'Mid Frame',
+  'turbine': 'Turbine',
+  'exit-cylinder': 'Turbine Exit Cylinder'
+}
+
 interface TurbineDiagramProps {
   selectedSectionId?: string | null
   onSelectSection?: (id: TurbineSectionID, name: string) => void
   interactive?: boolean
 }
 
-// Fallback DB structure for guaranteed UI functioning
+// Map real gas turbine cross-section
 export const TURBINE_SECTIONS = [
-  { id: 'compressor', name: 'Compressor', color: 'rgba(56, 189, 248, 0.7)', stroke: '#38bdf8', points: "0,30 280,50 280,150 0,170" },
-  { id: 'mid-frame', name: 'Mid Frame', color: 'rgba(245, 158, 11, 0.7)', stroke: '#f59e0b', points: "280,50 420,50 420,150 280,150" },
-  { id: 'turbine', name: 'Turbine', color: 'rgba(52, 211, 153, 0.7)', stroke: '#34d399', points: "420,50 600,40 600,160 420,150" },
-  { id: 'exit-cylinder', name: 'Exit Cylinder', color: 'rgba(167, 139, 250, 0.7)', stroke: '#a78bfa', points: "600,40 800,20 800,180 600,160" }
+  { id: 'compressor', name: 'Compressor', color: 'rgba(56, 189, 248, 0.4)', hoverColor: 'rgba(56, 189, 248, 0.6)', activeColor: 'rgba(56, 189, 248, 1)', stroke: '#38bdf8', points: "0,30 280,50 280,150 0,170" },
+  { id: 'mid-frame', name: 'Mid Frame', color: 'rgba(245, 158, 11, 0.4)', hoverColor: 'rgba(245, 158, 11, 0.6)', activeColor: 'rgba(245, 158, 11, 1)', stroke: '#f59e0b', points: "280,50 420,50 420,150 280,150" },
+  { id: 'turbine', name: 'Turbine', color: 'rgba(52, 211, 153, 0.4)', hoverColor: 'rgba(52, 211, 153, 0.6)', activeColor: 'rgba(52, 211, 153, 1)', stroke: '#34d399', points: "420,50 600,40 600,160 420,150" },
+  { id: 'exit-cylinder', name: 'Exit Cylinder', color: 'rgba(167, 139, 250, 0.4)', hoverColor: 'rgba(167, 139, 250, 0.6)', activeColor: 'rgba(167, 139, 250, 1)', stroke: '#a78bfa', points: "600,40 800,20 800,180 600,160" }
 ]
-
-export const STAGES_MOCK = [
-  { id: 1, name: 'Stage 1', bladeCount: '80-100' },
-  { id: 2, name: 'Stage 2', bladeCount: '70-90' },
-  { id: 3, name: 'Stage 3', bladeCount: '60-80' },
-  { id: 4, name: 'Stage 4', bladeCount: '50-70' }
-]
-
-export const COMPONENTS_MOCK = ['Rotor Blade', 'Stator Vane', 'Seal', 'Casing', 'Shaft']
 
 export function TurbineDiagram({ selectedSectionId, onSelectSection, interactive = true }: TurbineDiagramProps) {
+  const [hoveredSection, setHoveredSection] = React.useState<string | null>(null)
+
   const handleSelect = (id: string, name: string) => {
     if (!interactive) return
     onSelectSection?.(id as TurbineSectionID, name)
@@ -54,27 +54,37 @@ export function TurbineDiagram({ selectedSectionId, onSelectSection, interactive
             )
           })}
 
+          {/* Decorative shapes for Mid Frame (Combustion cans) */}
+          {Array.from({ length: 3 }).map((_, i) => (
+            <circle key={`mid-${i}`} cx={320 + i * 40} cy="100" r="15" stroke="rgba(255,255,255,0.2)" strokeWidth="2" fill="none" />
+          ))}
+
           {/* Decorative Blade Lines for Turbine */}
-          {Array.from({ length: 6 }).map((_, i) => {
-            const x = 440 + i * 25;
-            const topY = 50 - (i * (10 / 6));
-            const bottomY = 150 + (i * (10 / 6));
+          {Array.from({ length: 4 }).map((_, i) => {
+            const x1 = 450 + i * 35;
+            const x2 = 460 + i * 35;
+            const topY = 50 - (i * (10 / 4));
+            const bottomY = 150 + (i * (10 / 4));
             return (
-              <line key={`turb-${i}`} x1={x} y1={topY + 5} x2={x} y2={bottomY - 5} stroke="rgba(255,255,255,0.1)" strokeWidth="2" />
+              <g key={`turb-${i}`}>
+                <line x1={x1} y1={topY + 5} x2={x1} y2={bottomY - 5} stroke="rgba(255,255,255,0.1)" strokeWidth="2" />
+                <line x1={x2} y1={topY + 5} x2={x2} y2={bottomY - 5} stroke="rgba(255,255,255,0.1)" strokeWidth="2" />
+              </g>
             )
           })}
 
           {TURBINE_SECTIONS.map((section) => {
             const isActive = selectedSectionId === section.id;
+            const isHovered = hoveredSection === section.id && interactive;
+            const fillColor = isActive ? section.activeColor : (isHovered ? section.hoverColor : section.color);
+
             return (
               <g 
                 key={section.id} 
                 onClick={() => handleSelect(section.id, section.name)}
-                className={cn(
-                  "turbine-section",
-                  interactive && "cursor-pointer",
-                  isActive && "active"
-                )}
+                onMouseEnter={() => setHoveredSection(section.id)}
+                onMouseLeave={() => setHoveredSection(null)}
+                style={{ cursor: interactive ? 'pointer' : 'default' }}
               >
                 {/* Glow effect behind active polygon */}
                 {isActive && (
@@ -90,11 +100,11 @@ export function TurbineDiagram({ selectedSectionId, onSelectSection, interactive
                 
                 <polygon
                   points={section.points}
-                  fill={section.color}
+                  fill={fillColor}
                   stroke={isActive ? '#fff' : section.stroke}
-                  strokeWidth={isActive ? "3" : "1"}
+                  strokeWidth={isActive ? "3" : (isHovered ? "3" : "1")}
                   strokeLinejoin="round"
-                  className="transition-all duration-300"
+                  style={{ transition: 'all 0.2s ease', filter: isHovered && !isActive ? `drop-shadow(0 0 4px ${section.stroke})` : 'none' }}
                 />
                 
                 {/* Section Label */}
@@ -108,10 +118,14 @@ export function TurbineDiagram({ selectedSectionId, onSelectSection, interactive
                   fontWeight="600"
                   fontFamily="Inter, sans-serif"
                   letterSpacing="0.05em"
-                  className={cn(
-                    "pointer-events-none transition-all duration-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]",
-                    isActive ? "text-[16px] font-bold" : ""
-                  )}
+                  style={{
+                    transition: 'all 0.2s ease',
+                    pointerEvents: 'none',
+                    filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.8))',
+                    transform: `scale(${isActive ? 1.1 : (isHovered ? 1.05 : 1)})`,
+                    transformOrigin: `${getCenter(section.points).x}px ${getCenter(section.points).y}px`,
+                    fontWeight: isActive ? 800 : 600
+                  }}
                 >
                   {section.name}
                 </text>
@@ -134,3 +148,4 @@ function getCenter(points: string) {
     y: ys.reduce((a, b) => a + b, 0) / ys.length
   };
 }
+

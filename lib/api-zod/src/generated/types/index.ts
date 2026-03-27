@@ -3,20 +3,34 @@
  * Do not edit manually.
  * Api
  * Maintenance Task & QC Management System API
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 
 export * from "./asset";
 export * from "./assetComponent";
 export * from "./assetSection";
 export * from "./assetStage";
+export * from "./componentHistory";
 export * from "./createTaskInput";
 export * from "./createTaskInputPriority";
+export * from "./dashboardStats";
+export * from "./dashboardStatsBySectionItem";
+export * from "./dashboardStatsByStageItem";
+export * from "./dashboardStatsByStatus";
+export * from "./dashboardStatsTechnicianPerformanceItem";
 export * from "./healthStatus";
 export * from "./listTasksParams";
+export * from "./pauseTimeInput";
+export * from "./qcReview";
+export * from "./qcReviewDecision";
+export * from "./qcReviewInput";
+export * from "./qcReviewInputDecision";
+export * from "./startTimeInput";
 export * from "./task";
+export * from "./taskDetail";
 export * from "./taskPriority";
 export * from "./taskStatus";
+export * from "./timeEntry";
 export * from "./updateTaskStatusInput";
 export * from "./updateTaskStatusInputStatus";
 export * from "./user";

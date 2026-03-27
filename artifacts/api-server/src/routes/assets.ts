@@ -5,8 +5,11 @@ import {
   assetSectionsTable,
   assetStagesTable,
   assetComponentsTable,
+  tasksTable,
+  usersTable,
+  timeEntriesTable,
 } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, isNotNull } from "drizzle-orm";
 
 const router: IRouter = Router();
 
@@ -60,6 +63,112 @@ router.get("/stages/:stageId/components", async (req, res) => {
     res.json(components);
   } catch (err) {
     req.log.error({ err }, "Failed to list components");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/components/:componentId/history", async (req, res) => {
+  try {
+    const componentId = parseInt(req.params.componentId, 10);
+
+    // Get component info
+    const [component] = await db
+      .select({
+        id: assetComponentsTable.id,
+        name: assetComponentsTable.name,
+        stageId: assetComponentsTable.stageId,
+        stageName: assetStagesTable.name,
+        sectionName: assetSectionsTable.name,
+      })
+      .from(assetComponentsTable)
+      .leftJoin(assetStagesTable, eq(assetComponentsTable.stageId, assetStagesTable.id))
+      .leftJoin(assetSectionsTable, eq(assetStagesTable.sectionId, assetSectionsTable.id))
+      .where(eq(assetComponentsTable.id, componentId));
+
+    if (!component) {
+      return res.status(404).json({ error: "Component not found" });
+    }
+
+    // Get tasks for this component
+    const tasks = await db
+      .select({
+        id: tasksTable.id,
+        title: tasksTable.title,
+        description: tasksTable.description,
+        assetId: tasksTable.assetId,
+        assetName: assetsTable.name,
+        sectionId: tasksTable.sectionId,
+        sectionName: assetSectionsTable.name,
+        stageId: tasksTable.stageId,
+        stageName: assetStagesTable.name,
+        stageNumber: assetStagesTable.stageNumber,
+        bladeCountMin: assetStagesTable.bladeCountMin,
+        bladeCountMax: assetStagesTable.bladeCountMax,
+        componentId: tasksTable.componentId,
+        componentName: assetComponentsTable.name,
+        assignedToId: tasksTable.assignedToId,
+        assignedToName: usersTable.name,
+        createdById: tasksTable.createdById,
+        estimatedHours: tasksTable.estimatedHours,
+        deadline: tasksTable.deadline,
+        priority: tasksTable.priority,
+        status: tasksTable.status,
+        createdAt: tasksTable.createdAt,
+        updatedAt: tasksTable.updatedAt,
+      })
+      .from(tasksTable)
+      .leftJoin(assetsTable, eq(tasksTable.assetId, assetsTable.id))
+      .leftJoin(assetSectionsTable, eq(tasksTable.sectionId, assetSectionsTable.id))
+      .leftJoin(assetStagesTable, eq(tasksTable.stageId, assetStagesTable.id))
+      .leftJoin(assetComponentsTable, eq(tasksTable.componentId, assetComponentsTable.id))
+      .leftJoin(usersTable, eq(tasksTable.assignedToId, usersTable.id))
+      .where(eq(tasksTable.componentId, componentId))
+      .orderBy(tasksTable.createdAt);
+
+    const completedTasks = tasks.filter((t) =>
+      ["approved", "submitted"].includes(t.status)
+    );
+
+    // Avg repair hours from time entries on completed tasks
+    let avgRepairHours: number | null = null;
+    if (completedTasks.length > 0) {
+      const completedIds = completedTasks.map((t) => t.id);
+      const allTimeEntries = await db
+        .select({ duration: timeEntriesTable.duration, taskId: timeEntriesTable.taskId })
+        .from(timeEntriesTable)
+        .where(isNotNull(timeEntriesTable.duration));
+
+      const relevantEntries = allTimeEntries.filter((e) =>
+        completedIds.includes(e.taskId)
+      );
+
+      if (relevantEntries.length > 0) {
+        const totalMin = relevantEntries.reduce(
+          (sum, e) => sum + (e.duration ?? 0),
+          0
+        );
+        avgRepairHours = Math.round((totalMin / completedTasks.length / 60) * 10) / 10;
+      }
+    }
+
+    const lastMaintenance =
+      completedTasks.length > 0
+        ? completedTasks[completedTasks.length - 1].updatedAt
+        : null;
+
+    res.json({
+      componentId: component.id,
+      componentName: component.name,
+      stageName: component.stageName,
+      sectionName: component.sectionName,
+      totalTasks: tasks.length,
+      completedTasks: completedTasks.length,
+      avgRepairHours,
+      lastMaintenanceDate: lastMaintenance,
+      tasks: tasks.map((t) => ({ ...t, totalMinutes: 0 })),
+    });
+  } catch (err) {
+    req.log.error({ err }, "Failed to get component history");
     res.status(500).json({ error: "Internal server error" });
   }
 });

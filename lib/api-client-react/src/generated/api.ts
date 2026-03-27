@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * Maintenance Task & QC Management System API
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type {
@@ -21,10 +21,18 @@ import type {
   AssetComponent,
   AssetSection,
   AssetStage,
+  ComponentHistory,
   CreateTaskInput,
+  DashboardStats,
   HealthStatus,
   ListTasksParams,
+  PauseTimeInput,
+  QcReview,
+  QcReviewInput,
+  StartTimeInput,
   Task,
+  TaskDetail,
+  TimeEntry,
   UpdateTaskStatusInput,
   User,
 } from "./api.schemas";
@@ -39,7 +47,6 @@ type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 /**
- * Returns server health status
  * @summary Health check
  */
 export const getHealthCheckUrl = () => {
@@ -449,6 +456,160 @@ export function useListComponents<
 }
 
 /**
+ * @summary Get task history for a component
+ */
+export const getGetComponentHistoryUrl = (componentId: number) => {
+  return `/api/components/${componentId}/history`;
+};
+
+export const getComponentHistory = async (
+  componentId: number,
+  options?: RequestInit,
+): Promise<ComponentHistory> => {
+  return customFetch<ComponentHistory>(getGetComponentHistoryUrl(componentId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetComponentHistoryQueryKey = (componentId: number) => {
+  return [`/api/components/${componentId}/history`] as const;
+};
+
+export const getGetComponentHistoryQueryOptions = <
+  TData = Awaited<ReturnType<typeof getComponentHistory>>,
+  TError = ErrorType<unknown>,
+>(
+  componentId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getComponentHistory>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetComponentHistoryQueryKey(componentId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getComponentHistory>>
+  > = ({ signal }) =>
+    getComponentHistory(componentId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!componentId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getComponentHistory>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetComponentHistoryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getComponentHistory>>
+>;
+export type GetComponentHistoryQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get task history for a component
+ */
+
+export function useGetComponentHistory<
+  TData = Awaited<ReturnType<typeof getComponentHistory>>,
+  TError = ErrorType<unknown>,
+>(
+  componentId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getComponentHistory>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetComponentHistoryQueryOptions(componentId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List all users
+ */
+export const getListUsersUrl = () => {
+  return `/api/users`;
+};
+
+export const listUsers = async (options?: RequestInit): Promise<User[]> => {
+  return customFetch<User[]>(getListUsersUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListUsersQueryKey = () => {
+  return [`/api/users`] as const;
+};
+
+export const getListUsersQueryOptions = <
+  TData = Awaited<ReturnType<typeof listUsers>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<Awaited<ReturnType<typeof listUsers>>, TError, TData>;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListUsersQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listUsers>>> = ({
+    signal,
+  }) => listUsers({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listUsers>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListUsersQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listUsers>>
+>;
+export type ListUsersQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all users
+ */
+
+export function useListUsers<
+  TData = Awaited<ReturnType<typeof listUsers>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<Awaited<ReturnType<typeof listUsers>>, TError, TData>;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListUsersQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
  * @summary List all tasks
  */
 export const getListTasksUrl = (params?: ListTasksParams) => {
@@ -629,7 +790,7 @@ export const useCreateTask = <
 };
 
 /**
- * @summary Get task by ID
+ * @summary Get task by ID with full detail
  */
 export const getGetTaskUrl = (taskId: number) => {
   return `/api/tasks/${taskId}`;
@@ -638,8 +799,8 @@ export const getGetTaskUrl = (taskId: number) => {
 export const getTask = async (
   taskId: number,
   options?: RequestInit,
-): Promise<Task> => {
-  return customFetch<Task>(getGetTaskUrl(taskId), {
+): Promise<TaskDetail> => {
+  return customFetch<TaskDetail>(getGetTaskUrl(taskId), {
     ...options,
     method: "GET",
   });
@@ -683,7 +844,7 @@ export type GetTaskQueryResult = NonNullable<
 export type GetTaskQueryError = ErrorType<unknown>;
 
 /**
- * @summary Get task by ID
+ * @summary Get task by ID with full detail
  */
 
 export function useGetTask<
@@ -793,62 +954,591 @@ export const useUpdateTaskStatus = <
 };
 
 /**
- * @summary List all users
+ * @summary List time entries for a task
  */
-export const getListUsersUrl = () => {
-  return `/api/users`;
+export const getListTimeEntriesUrl = (taskId: number) => {
+  return `/api/tasks/${taskId}/time`;
 };
 
-export const listUsers = async (options?: RequestInit): Promise<User[]> => {
-  return customFetch<User[]>(getListUsersUrl(), {
+export const listTimeEntries = async (
+  taskId: number,
+  options?: RequestInit,
+): Promise<TimeEntry[]> => {
+  return customFetch<TimeEntry[]>(getListTimeEntriesUrl(taskId), {
     ...options,
     method: "GET",
   });
 };
 
-export const getListUsersQueryKey = () => {
-  return [`/api/users`] as const;
+export const getListTimeEntriesQueryKey = (taskId: number) => {
+  return [`/api/tasks/${taskId}/time`] as const;
 };
 
-export const getListUsersQueryOptions = <
-  TData = Awaited<ReturnType<typeof listUsers>>,
+export const getListTimeEntriesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listTimeEntries>>,
   TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<Awaited<ReturnType<typeof listUsers>>, TError, TData>;
-  request?: SecondParameter<typeof customFetch>;
-}) => {
+>(
+  taskId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listTimeEntries>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getListUsersQueryKey();
+  const queryKey = queryOptions?.queryKey ?? getListTimeEntriesQueryKey(taskId);
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof listUsers>>> = ({
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listTimeEntries>>> = ({
     signal,
-  }) => listUsers({ signal, ...requestOptions });
+  }) => listTimeEntries(taskId, { signal, ...requestOptions });
 
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof listUsers>>,
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!taskId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listTimeEntries>>,
     TError,
     TData
   > & { queryKey: QueryKey };
 };
 
-export type ListUsersQueryResult = NonNullable<
-  Awaited<ReturnType<typeof listUsers>>
+export type ListTimeEntriesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listTimeEntries>>
 >;
-export type ListUsersQueryError = ErrorType<unknown>;
+export type ListTimeEntriesQueryError = ErrorType<unknown>;
 
 /**
- * @summary List all users
+ * @summary List time entries for a task
  */
 
-export function useListUsers<
-  TData = Awaited<ReturnType<typeof listUsers>>,
+export function useListTimeEntries<
+  TData = Awaited<ReturnType<typeof listTimeEntries>>,
+  TError = ErrorType<unknown>,
+>(
+  taskId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listTimeEntries>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListTimeEntriesQueryOptions(taskId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Start time tracking (creates an open entry)
+ */
+export const getStartTimeTrackingUrl = (taskId: number) => {
+  return `/api/tasks/${taskId}/time`;
+};
+
+export const startTimeTracking = async (
+  taskId: number,
+  startTimeInput: StartTimeInput,
+  options?: RequestInit,
+): Promise<TimeEntry> => {
+  return customFetch<TimeEntry>(getStartTimeTrackingUrl(taskId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(startTimeInput),
+  });
+};
+
+export const getStartTimeTrackingMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof startTimeTracking>>,
+    TError,
+    { taskId: number; data: BodyType<StartTimeInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof startTimeTracking>>,
+  TError,
+  { taskId: number; data: BodyType<StartTimeInput> },
+  TContext
+> => {
+  const mutationKey = ["startTimeTracking"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof startTimeTracking>>,
+    { taskId: number; data: BodyType<StartTimeInput> }
+  > = (props) => {
+    const { taskId, data } = props ?? {};
+
+    return startTimeTracking(taskId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type StartTimeTrackingMutationResult = NonNullable<
+  Awaited<ReturnType<typeof startTimeTracking>>
+>;
+export type StartTimeTrackingMutationBody = BodyType<StartTimeInput>;
+export type StartTimeTrackingMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Start time tracking (creates an open entry)
+ */
+export const useStartTimeTracking = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof startTimeTracking>>,
+    TError,
+    { taskId: number; data: BodyType<StartTimeInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof startTimeTracking>>,
+  TError,
+  { taskId: number; data: BodyType<StartTimeInput> },
+  TContext
+> => {
+  return useMutation(getStartTimeTrackingMutationOptions(options));
+};
+
+/**
+ * @summary Pause active time tracking (requires reason)
+ */
+export const getPauseTimeTrackingUrl = (taskId: number) => {
+  return `/api/tasks/${taskId}/time/pause`;
+};
+
+export const pauseTimeTracking = async (
+  taskId: number,
+  pauseTimeInput: PauseTimeInput,
+  options?: RequestInit,
+): Promise<TimeEntry> => {
+  return customFetch<TimeEntry>(getPauseTimeTrackingUrl(taskId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(pauseTimeInput),
+  });
+};
+
+export const getPauseTimeTrackingMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof pauseTimeTracking>>,
+    TError,
+    { taskId: number; data: BodyType<PauseTimeInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof pauseTimeTracking>>,
+  TError,
+  { taskId: number; data: BodyType<PauseTimeInput> },
+  TContext
+> => {
+  const mutationKey = ["pauseTimeTracking"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof pauseTimeTracking>>,
+    { taskId: number; data: BodyType<PauseTimeInput> }
+  > = (props) => {
+    const { taskId, data } = props ?? {};
+
+    return pauseTimeTracking(taskId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PauseTimeTrackingMutationResult = NonNullable<
+  Awaited<ReturnType<typeof pauseTimeTracking>>
+>;
+export type PauseTimeTrackingMutationBody = BodyType<PauseTimeInput>;
+export type PauseTimeTrackingMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Pause active time tracking (requires reason)
+ */
+export const usePauseTimeTracking = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof pauseTimeTracking>>,
+    TError,
+    { taskId: number; data: BodyType<PauseTimeInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof pauseTimeTracking>>,
+  TError,
+  { taskId: number; data: BodyType<PauseTimeInput> },
+  TContext
+> => {
+  return useMutation(getPauseTimeTrackingMutationOptions(options));
+};
+
+/**
+ * @summary Resume time tracking (creates new open entry)
+ */
+export const getResumeTimeTrackingUrl = (taskId: number) => {
+  return `/api/tasks/${taskId}/time/resume`;
+};
+
+export const resumeTimeTracking = async (
+  taskId: number,
+  options?: RequestInit,
+): Promise<TimeEntry> => {
+  return customFetch<TimeEntry>(getResumeTimeTrackingUrl(taskId), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getResumeTimeTrackingMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof resumeTimeTracking>>,
+    TError,
+    { taskId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof resumeTimeTracking>>,
+  TError,
+  { taskId: number },
+  TContext
+> => {
+  const mutationKey = ["resumeTimeTracking"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof resumeTimeTracking>>,
+    { taskId: number }
+  > = (props) => {
+    const { taskId } = props ?? {};
+
+    return resumeTimeTracking(taskId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ResumeTimeTrackingMutationResult = NonNullable<
+  Awaited<ReturnType<typeof resumeTimeTracking>>
+>;
+
+export type ResumeTimeTrackingMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Resume time tracking (creates new open entry)
+ */
+export const useResumeTimeTracking = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof resumeTimeTracking>>,
+    TError,
+    { taskId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof resumeTimeTracking>>,
+  TError,
+  { taskId: number },
+  TContext
+> => {
+  return useMutation(getResumeTimeTrackingMutationOptions(options));
+};
+
+/**
+ * @summary List QC reviews for a task
+ */
+export const getListQcReviewsUrl = (taskId: number) => {
+  return `/api/tasks/${taskId}/qc`;
+};
+
+export const listQcReviews = async (
+  taskId: number,
+  options?: RequestInit,
+): Promise<QcReview[]> => {
+  return customFetch<QcReview[]>(getListQcReviewsUrl(taskId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListQcReviewsQueryKey = (taskId: number) => {
+  return [`/api/tasks/${taskId}/qc`] as const;
+};
+
+export const getListQcReviewsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listQcReviews>>,
+  TError = ErrorType<unknown>,
+>(
+  taskId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listQcReviews>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListQcReviewsQueryKey(taskId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listQcReviews>>> = ({
+    signal,
+  }) => listQcReviews(taskId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!taskId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listQcReviews>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListQcReviewsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listQcReviews>>
+>;
+export type ListQcReviewsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List QC reviews for a task
+ */
+
+export function useListQcReviews<
+  TData = Awaited<ReturnType<typeof listQcReviews>>,
+  TError = ErrorType<unknown>,
+>(
+  taskId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listQcReviews>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListQcReviewsQueryOptions(taskId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Submit a QC review (approve or reject)
+ */
+export const getSubmitQcReviewUrl = (taskId: number) => {
+  return `/api/tasks/${taskId}/qc`;
+};
+
+export const submitQcReview = async (
+  taskId: number,
+  qcReviewInput: QcReviewInput,
+  options?: RequestInit,
+): Promise<QcReview> => {
+  return customFetch<QcReview>(getSubmitQcReviewUrl(taskId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(qcReviewInput),
+  });
+};
+
+export const getSubmitQcReviewMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof submitQcReview>>,
+    TError,
+    { taskId: number; data: BodyType<QcReviewInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof submitQcReview>>,
+  TError,
+  { taskId: number; data: BodyType<QcReviewInput> },
+  TContext
+> => {
+  const mutationKey = ["submitQcReview"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof submitQcReview>>,
+    { taskId: number; data: BodyType<QcReviewInput> }
+  > = (props) => {
+    const { taskId, data } = props ?? {};
+
+    return submitQcReview(taskId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SubmitQcReviewMutationResult = NonNullable<
+  Awaited<ReturnType<typeof submitQcReview>>
+>;
+export type SubmitQcReviewMutationBody = BodyType<QcReviewInput>;
+export type SubmitQcReviewMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Submit a QC review (approve or reject)
+ */
+export const useSubmitQcReview = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof submitQcReview>>,
+    TError,
+    { taskId: number; data: BodyType<QcReviewInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof submitQcReview>>,
+  TError,
+  { taskId: number; data: BodyType<QcReviewInput> },
+  TContext
+> => {
+  return useMutation(getSubmitQcReviewMutationOptions(options));
+};
+
+/**
+ * @summary Get dashboard statistics
+ */
+export const getGetDashboardStatsUrl = () => {
+  return `/api/dashboard/stats`;
+};
+
+export const getDashboardStats = async (
+  options?: RequestInit,
+): Promise<DashboardStats> => {
+  return customFetch<DashboardStats>(getGetDashboardStatsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetDashboardStatsQueryKey = () => {
+  return [`/api/dashboard/stats`] as const;
+};
+
+export const getGetDashboardStatsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDashboardStats>>,
   TError = ErrorType<unknown>,
 >(options?: {
-  query?: UseQueryOptions<Awaited<ReturnType<typeof listUsers>>, TError, TData>;
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDashboardStats>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetDashboardStatsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getDashboardStats>>
+  > = ({ signal }) => getDashboardStats({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDashboardStats>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetDashboardStatsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDashboardStats>>
+>;
+export type GetDashboardStatsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get dashboard statistics
+ */
+
+export function useGetDashboardStats<
+  TData = Awaited<ReturnType<typeof getDashboardStats>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDashboardStats>>,
+    TError,
+    TData
+  >;
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getListUsersQueryOptions(options);
+  const queryOptions = getGetDashboardStatsQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

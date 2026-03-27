@@ -1,56 +1,96 @@
 import * as React from "react"
-import { useCreateTask, useListUsers } from "@workspace/api-client-react"
-import { TurbineDiagram, TURBINE_SECTIONS, STAGES_MOCK, COMPONENTS_MOCK, type TurbineSectionID } from "@/components/TurbineDiagram"
-import { Card, Button, Input, Label, Textarea, Badge } from "@/components/ui/core"
-import { motion, AnimatePresence } from "framer-motion"
 import { useLocation } from "wouter"
-import { ArrowRight, CheckCircle2, ChevronLeft, Wrench, PackageSearch } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import { format } from "date-fns"
+import { 
+  ArrowRight, CheckCircle2, ChevronLeft, Wrench, PackageSearch,
+  ChevronRight
+} from "lucide-react"
+
+import { 
+  useCreateTask, 
+  useListUsers, 
+  useListAssets,
+  useListSections,
+  useListStages,
+  useListComponents
+} from "@workspace/api-client-react"
+import { TurbineDiagram, SECTION_SLUG_MAP, type TurbineSectionID } from "@/components/TurbineDiagram"
+import { Card, Button, Input, Label, Textarea, Badge, Select } from "@/components/ui/core"
 
 export default function CreateTask() {
   const [, setLocation] = useLocation()
+  
+  // Data hooks
   const { data: users } = useListUsers()
+  const { data: assets } = useListAssets()
   const createTaskMutation = useCreateTask()
 
+  const defaultAsset = assets?.[0]
+  
   const [step, setStep] = React.useState(1)
   
   // Selections
-  const [sectionId, setSectionId] = React.useState<string | null>(null)
-  const [sectionName, setSectionName] = React.useState<string>('')
+  const [diagramSectionId, setDiagramSectionId] = React.useState<TurbineSectionID | null>(null)
   
-  const [stageName, setStageName] = React.useState<string | null>(null)
-  const [componentName, setComponentName] = React.useState<string | null>(null)
+  const { data: sections } = useListSections(defaultAsset?.id ?? 0, {
+    query: { enabled: !!defaultAsset?.id }
+  })
+
+  // Map the clicked diagram section to a real DB section
+  const selectedDbSection = React.useMemo(() => {
+    if (!diagramSectionId || !sections) return null
+    const mappedName = SECTION_SLUG_MAP[diagramSectionId]
+    return sections.find(s => s.name === mappedName) || null
+  }, [diagramSectionId, sections])
+
+  const { data: stages } = useListStages(selectedDbSection?.id ?? 0, {
+    query: { enabled: !!selectedDbSection?.id }
+  })
+
+  const [selectedStageId, setSelectedStageId] = React.useState<number | null>(null)
+  
+  const selectedStage = React.useMemo(() => {
+    return stages?.find(s => s.id === selectedStageId) || null
+  }, [stages, selectedStageId])
+
+  const { data: components } = useListComponents(selectedStageId ?? 0, {
+    query: { enabled: !!selectedStageId }
+  })
+
+  const [selectedComponentId, setSelectedComponentId] = React.useState<number | null>(null)
+
+  const selectedComponent = React.useMemo(() => {
+    return components?.find(c => c.id === selectedComponentId) || null
+  }, [components, selectedComponentId])
 
   // Form State
   const [formData, setFormData] = React.useState({
     title: '',
     description: '',
-    priority: 'medium' as any,
+    priority: 'medium' as 'low' | 'medium' | 'high',
     estimatedHours: '',
     deadline: '',
     assignedToId: ''
   })
 
   const handleSectionSelect = (id: TurbineSectionID, name: string) => {
-    setSectionId(id)
-    setSectionName(name)
-    setStageName(null)
-    setComponentName(null)
-    // Only Turbine has stages in our mock logic, but let's allow continuing for any section
+    setDiagramSectionId(id)
+    setSelectedStageId(null)
+    setSelectedComponentId(null)
   }
 
   const handleNext = () => {
-    if (step === 1 && !sectionId) return
-    if (step === 1 && sectionId === 'turbine' && (!stageName || !componentName)) return
+    if (step === 1 && !selectedDbSection) return
+    // Require stage and component if it's the turbine section
+    if (step === 1 && diagramSectionId === 'turbine' && (!selectedStageId || !selectedComponentId)) return
     setStep(s => s + 1)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // We mock IDs for section/stage since our UI isn't using exact DB IDs for the diagram mapping
-    // In a real integration we'd map string selections to the specific DB IDs from useListSections
-    const dummyAssetId = 1
-    const dummySectionId = 1 
+    if (!defaultAsset || !selectedDbSection) return
 
     try {
       await createTaskMutation.mutateAsync({
@@ -58,8 +98,10 @@ export default function CreateTask() {
           title: formData.title,
           description: formData.description || undefined,
           priority: formData.priority,
-          assetId: dummyAssetId,
-          sectionId: dummySectionId,
+          assetId: defaultAsset.id,
+          sectionId: selectedDbSection.id,
+          stageId: selectedStageId || undefined,
+          componentId: selectedComponentId || undefined,
           assignedToId: formData.assignedToId ? parseInt(formData.assignedToId) : undefined,
           estimatedHours: formData.estimatedHours ? parseFloat(formData.estimatedHours) : undefined,
           deadline: formData.deadline ? new Date(formData.deadline).toISOString() : undefined,
@@ -95,66 +137,89 @@ export default function CreateTask() {
           <Card className="p-6 border-white/5 bg-card/60 backdrop-blur-xl">
             <h2 className="text-xl font-bold mb-6 flex items-center gap-2"><PackageSearch className="w-5 h-5 text-primary"/> Step 1: Select Location</h2>
             
+            {/* Live Breadcrumb */}
+            <div className="flex items-center gap-2 mb-6 text-sm text-muted-foreground">
+              <span>{defaultAsset?.name || 'SGT-9000HL'}</span>
+              {selectedDbSection && (
+                <>
+                  <ChevronRight className="w-4 h-4" />
+                  <span className="text-foreground">{selectedDbSection.name}</span>
+                </>
+              )}
+              {selectedStage && (
+                <>
+                  <ChevronRight className="w-4 h-4" />
+                  <span className="text-foreground">{selectedStage.name}</span>
+                </>
+              )}
+              {selectedComponent && (
+                <>
+                  <ChevronRight className="w-4 h-4" />
+                  <span className="text-primary font-medium">{selectedComponent.name}</span>
+                </>
+              )}
+            </div>
+
             <div className="mb-8">
               <Label className="text-muted-foreground mb-4 block uppercase tracking-wider text-xs">Interactive Turbine Map</Label>
               <TurbineDiagram 
-                selectedSectionId={sectionId} 
+                selectedSectionId={diagramSectionId} 
                 onSelectSection={handleSectionSelect} 
                 interactive={true} 
               />
             </div>
 
             <AnimatePresence>
-              {sectionId && (
+              {selectedDbSection && (
                 <motion.div 
                   initial={{ opacity: 0, height: 0 }} 
                   animate={{ opacity: 1, height: 'auto' }} 
                   className="space-y-6 border-t border-white/10 pt-6"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-lg font-medium">Selected: <span className="text-primary font-bold">{sectionName}</span></span>
-                    {sectionId !== 'turbine' && (
+                    <span className="text-lg font-medium">Selected: <span className="text-primary font-bold">{selectedDbSection.name}</span></span>
+                    {diagramSectionId !== 'turbine' && (
                       <Button onClick={handleNext} className="gap-2">
                         Continue to Details <ArrowRight className="w-4 h-4" />
                       </Button>
                     )}
                   </div>
 
-                  {sectionId === 'turbine' && (
+                  {diagramSectionId === 'turbine' && (
                     <div className="space-y-6">
                       <div>
                         <Label className="text-muted-foreground mb-3 block uppercase tracking-wider text-xs">Select Stage</Label>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                          {STAGES_MOCK.map((stage) => (
+                          {stages?.map((stage) => (
                             <div 
                               key={stage.id}
-                              onClick={() => { setStageName(stage.name); setComponentName(null) }}
-                              className={`p-4 rounded-xl border cursor-pointer transition-all duration-200 ${stageName === stage.name ? 'border-emerald-500 bg-emerald-500/10 shadow-[0_0_15px_rgba(52,211,153,0.15)]' : 'border-white/10 bg-card hover:bg-white/5'}`}
+                              onClick={() => { setSelectedStageId(stage.id); setSelectedComponentId(null) }}
+                              className={`p-4 rounded-xl border cursor-pointer transition-all duration-200 ${selectedStageId === stage.id ? 'border-emerald-500 bg-emerald-500/10 shadow-[0_0_15px_rgba(52,211,153,0.15)]' : 'border-white/10 bg-card hover:bg-white/5'}`}
                             >
-                              <div className={`font-bold ${stageName === stage.name ? 'text-emerald-400' : 'text-foreground'}`}>{stage.name}</div>
-                              <div className="text-xs text-muted-foreground mt-1">Blades: {stage.bladeCount}</div>
+                              <div className={`font-bold ${selectedStageId === stage.id ? 'text-emerald-400' : 'text-foreground'}`}>{stage.name}</div>
+                              <div className="text-xs text-muted-foreground mt-1">Blades: {stage.bladeCountMin}-{stage.bladeCountMax}</div>
                             </div>
                           ))}
                         </div>
                       </div>
 
-                      {stageName && (
+                      {selectedStageId && (
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                           <Label className="text-muted-foreground mb-3 block uppercase tracking-wider text-xs">Select Component</Label>
                           <div className="flex flex-wrap gap-2 mb-6">
-                            {COMPONENTS_MOCK.map((comp) => (
+                            {components?.map((comp) => (
                               <Badge 
-                                key={comp}
-                                onClick={() => setComponentName(comp)}
-                                className={`px-4 py-2 cursor-pointer text-sm transition-all ${componentName === comp ? 'bg-primary text-white border-primary shadow-[0_0_10px_rgba(29,78,216,0.3)]' : 'bg-transparent border border-white/20 text-muted-foreground hover:bg-white/5'}`}
+                                key={comp.id}
+                                onClick={() => setSelectedComponentId(comp.id)}
+                                className={`px-4 py-2 cursor-pointer text-sm transition-all ${selectedComponentId === comp.id ? 'bg-primary text-primary-foreground border-primary shadow-[0_0_10px_rgba(29,78,216,0.3)]' : 'bg-transparent border border-white/20 text-muted-foreground hover:bg-white/5'}`}
                               >
-                                {comp}
+                                {comp.name}
                               </Badge>
                             ))}
                           </div>
                           
                           <div className="flex justify-end pt-4 border-t border-white/5">
-                            <Button onClick={handleNext} disabled={!componentName} className="gap-2">
+                            <Button onClick={handleNext} disabled={!selectedComponentId} className="gap-2">
                               Continue to Details <ArrowRight className="w-4 h-4" />
                             </Button>
                           </div>
@@ -181,9 +246,9 @@ export default function CreateTask() {
               {/* Location Summary */}
               <div className="bg-background/50 rounded-lg p-4 mb-8 border border-white/5 flex gap-2 items-center flex-wrap text-sm">
                 <span className="text-muted-foreground">Location:</span>
-                <Badge variant="outline">{sectionName}</Badge>
-                {stageName && <><ArrowRight className="w-3 h-3 text-muted-foreground" /><Badge variant="outline">{stageName}</Badge></>}
-                {componentName && <><ArrowRight className="w-3 h-3 text-muted-foreground" /><Badge variant="default" className="bg-primary/20">{componentName}</Badge></>}
+                <Badge variant="outline">{selectedDbSection?.name}</Badge>
+                {selectedStage && <><ArrowRight className="w-3 h-3 text-muted-foreground" /><Badge variant="outline">{selectedStage.name}</Badge></>}
+                {selectedComponent && <><ArrowRight className="w-3 h-3 text-muted-foreground" /><Badge variant="default" className="bg-primary/20">{selectedComponent.name}</Badge></>}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -199,8 +264,7 @@ export default function CreateTask() {
 
                 <div className="space-y-2">
                   <Label>Priority *</Label>
-                  <select 
-                    className="flex h-11 w-full rounded-lg border border-white/10 bg-input/50 px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-primary outline-none"
+                  <Select 
                     value={formData.priority}
                     onChange={(e) => setFormData({...formData, priority: e.target.value as any})}
                     required
@@ -208,13 +272,12 @@ export default function CreateTask() {
                     <option value="low">Low Priority</option>
                     <option value="medium">Medium Priority</option>
                     <option value="high">High Priority</option>
-                  </select>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
                   <Label>Assignee</Label>
-                  <select 
-                    className="flex h-11 w-full rounded-lg border border-white/10 bg-input/50 px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-primary outline-none"
+                  <Select 
                     value={formData.assignedToId}
                     onChange={(e) => setFormData({...formData, assignedToId: e.target.value})}
                   >
@@ -222,7 +285,7 @@ export default function CreateTask() {
                     {users?.map(u => (
                       <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">

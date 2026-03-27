@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * Maintenance Task & QC Management System API
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 import type { TaskPriority } from "./taskPriority";
 import type { TaskStatus } from "./taskStatus";
@@ -18,15 +18,19 @@ export interface Task {
   sectionName?: string;
   stageId?: number;
   stageName?: string;
+  stageNumber?: number;
+  bladeCountMin?: number;
+  bladeCountMax?: number;
   componentId?: number;
   componentName?: string;
   assignedToId?: number;
   assignedToName?: string;
   createdById?: number;
-  estimatedHours?: number;
+  estimatedHours?: string;
   deadline?: Date;
   priority: TaskPriority;
   status: TaskStatus;
+  totalMinutes?: number;
   createdAt: Date;
   updatedAt?: Date;
 }

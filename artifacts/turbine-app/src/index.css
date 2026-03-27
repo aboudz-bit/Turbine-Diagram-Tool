@@ -41,35 +41,35 @@
 
 :root {
   /* DARK INDUSTRIAL THEME */
-  --background: 222 47% 8%;       /* Very dark navy/slate */
-  --foreground: 210 40% 98%;      /* Near white text */
+  --background: 222 47% 11%;
+  --foreground: 210 40% 98%;
   
-  --card: 222 47% 12%;            /* Slightly lighter navy for cards */
+  --card: 222 47% 15%;
   --card-foreground: 210 40% 98%;
   
-  --popover: 222 47% 12%;
+  --popover: 222 47% 15%;
   --popover-foreground: 210 40% 98%;
   
-  --primary: 213 94% 55%;         /* Steel/Bright Blue */
-  --primary-foreground: 210 40% 98%;
+  --primary: 213 94% 55%;
+  --primary-foreground: 0 0% 100%;
   
-  --secondary: 217 33% 20%;       /* Mid Slate */
+  --secondary: 217 33% 17%;
   --secondary-foreground: 210 40% 98%;
   
-  --muted: 217 33% 15%;           /* Darker Slate */
-  --muted-foreground: 215 20% 65%;
+  --muted: 215 28% 17%;
+  --muted-foreground: 215 20% 55%;
   
-  --accent: 38 92% 55%;           /* Industrial Amber/Orange */
-  --accent-foreground: 222 47% 11%;
+  --accent: 38 92% 55%;
+  --accent-foreground: 0 0% 0%;
   
-  --destructive: 0 84% 60%;       /* Alert Red */
-  --destructive-foreground: 210 40% 98%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
 
-  --border: 217 33% 22%;          /* Border lines */
-  --input: 217 33% 18%;           /* Input fields */
-  --ring: 213 94% 55%;            /* Focus rings */
+  --border: 217 33% 25%;
+  --input: 217 33% 17%;
+  --ring: 213 94% 55%;
   
-  --radius: 0.75rem;              /* 12px rounding for modern feel */
+  --radius: 0.75rem;
 }
 
 @layer base {
@@ -110,19 +110,7 @@
 }
 
 /* Turbine Diagram SVG Animations */
-.turbine-section {
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  transform-origin: center;
-}
-.turbine-section:hover {
-  filter: drop-shadow(0 0 12px rgba(255,255,255,0.15)) brightness(1.2);
-}
-.turbine-section.active {
-  filter: drop-shadow(0 0 16px rgba(255,255,255,0.3)) brightness(1.3);
-  stroke: #ffffff;
-  stroke-width: 3px;
-  stroke-linejoin: round;
-}
+/* Removed CSS hover/active state overrides here as they are handled in React */
 
 /* Glassmorphism utilities */
 .glass-panel {

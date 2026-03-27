@@ -3,10 +3,11 @@
  * Do not edit manually.
  * Api
  * Maintenance Task & QC Management System API
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 
 export type ListTasksParams = {
   status?: string;
   assignedTo?: number;
+  sectionId?: number;
 };

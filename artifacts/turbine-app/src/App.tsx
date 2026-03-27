@@ -5,7 +5,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppLayout } from "@/components/layout/AppLayout";
 import Dashboard from "@/pages/Dashboard";
 import Tasks from "@/pages/Tasks";
+import TaskDetail from "@/pages/TaskDetail";
 import CreateTask from "@/pages/CreateTask";
+import AssetHistory from "@/pages/AssetHistory";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -23,7 +25,9 @@ function Router() {
       <Switch>
         <Route path="/" component={Dashboard} />
         <Route path="/tasks" component={Tasks} />
+        <Route path="/tasks/:id" component={TaskDetail} />
         <Route path="/create-task" component={CreateTask} />
+        <Route path="/history" component={AssetHistory} />
         <Route component={NotFound} />
       </Switch>
     </AppLayout>
