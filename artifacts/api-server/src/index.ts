@@ -24,6 +24,12 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
+logger.info({
+  PORT: rawPort,
+  DATABASE_URL: process.env.DATABASE_URL ? "set" : "MISSING",
+  NODE_ENV: process.env.NODE_ENV || "not set",
+}, "Startup environment check");
+
 app.listen(port, (err) => {
   if (err) {
     logger.error({ err }, "Error listening on port");
