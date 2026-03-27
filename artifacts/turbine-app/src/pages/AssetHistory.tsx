@@ -62,11 +62,14 @@ export default function AssetHistory() {
       {/* ── HEADER ── */}
       <div className="flex items-start justify-between">
         <div>
+          <p className="text-[10px] font-mono text-muted-foreground/50 uppercase tracking-widest mb-1.5">
+            {defaultAsset?.name || 'SGT-9000HL'} · Maintenance Record
+          </p>
           <h1 className="text-2xl font-display font-bold text-foreground">
             Asset History
           </h1>
-          <p className="text-muted-foreground text-xs mt-0.5">
-            {defaultAsset?.name || 'SGT-9000HL'} — Component maintenance record & fault tracking
+          <p className="text-muted-foreground/60 text-sm mt-1">
+            Component-level maintenance record, fault tracking & task history
           </p>
         </div>
       </div>
@@ -81,10 +84,10 @@ export default function AssetHistory() {
               key={section.id}
               onClick={() => { setActiveSectionId(section.id) }}
               className={cn(
-                "whitespace-nowrap px-4 py-2 rounded-lg text-xs font-semibold transition-all border",
+                "whitespace-nowrap px-5 py-2.5 rounded-xl text-xs font-semibold transition-all border",
                 isActive
-                  ? `${style.bg} ${style.border} ${style.color}`
-                  : "bg-card border-white/10 text-muted-foreground hover:bg-white/5 hover:border-white/20"
+                  ? `${style.bg} ${style.border} ${style.color} shadow-[0_0_16px_rgba(0,0,0,0.2)]`
+                  : "bg-card/60 border-white/8 text-muted-foreground hover:bg-white/[0.04] hover:border-white/15 hover:text-foreground"
               )}
             >
               {section.name}
@@ -95,22 +98,22 @@ export default function AssetHistory() {
 
       {/* ── STAGE SUB-TABS ── */}
       {stages && stages.length > 0 && (
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mr-1">Stage:</span>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[10px] uppercase tracking-widest text-muted-foreground/50 font-bold mr-1">Stage</span>
           {stages.map(stage => (
             <button
               key={stage.id}
               onClick={() => setActiveStageId(stage.id)}
               className={cn(
-                "px-3 py-1.5 rounded-md text-xs font-medium transition-all border",
+                "px-3.5 py-2 rounded-lg text-xs font-semibold transition-all border",
                 activeStageId === stage.id
-                  ? "bg-white/10 border-white/25 text-foreground"
-                  : "border-transparent text-muted-foreground hover:bg-white/5 hover:text-foreground"
+                  ? "bg-white/10 border-white/20 text-foreground shadow-sm"
+                  : "border-white/6 bg-white/[0.02] text-muted-foreground hover:bg-white/[0.05] hover:text-foreground hover:border-white/15"
               )}
             >
               {stage.name}
               {stage.bladeCountMin != null && stage.bladeCountMax != null && (
-                <span className="ml-1.5 text-[10px] text-muted-foreground">
+                <span className={cn("ml-1.5 text-[10px]", activeStageId === stage.id ? "text-muted-foreground" : "text-muted-foreground/50")}>
                   ({stage.bladeCountMin}–{stage.bladeCountMax})
                 </span>
               )}

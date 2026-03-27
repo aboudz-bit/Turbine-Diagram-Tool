@@ -167,17 +167,17 @@ export function TurbineDiagram({ selectedSectionId, onSelectSection, interactive
               <polygon points={sectionPoly(s)} />
             </clipPath>
           ))}
-          <filter id="glow-blue" x="-30%" y="-30%" width="160%" height="160%">
-            <feGaussianBlur stdDeviation="5" result="blur" /><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          <filter id="glow-blue" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="9" result="blur" /><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
           </filter>
-          <filter id="glow-amber" x="-30%" y="-30%" width="160%" height="160%">
-            <feGaussianBlur stdDeviation="5" result="blur" /><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          <filter id="glow-amber" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="9" result="blur" /><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
           </filter>
-          <filter id="glow-green" x="-30%" y="-30%" width="160%" height="160%">
-            <feGaussianBlur stdDeviation="5" result="blur" /><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          <filter id="glow-green" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="9" result="blur" /><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
           </filter>
-          <filter id="glow-violet" x="-30%" y="-30%" width="160%" height="160%">
-            <feGaussianBlur stdDeviation="5" result="blur" /><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          <filter id="glow-violet" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="9" result="blur" /><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
           </filter>
         </defs>
 
@@ -215,12 +215,21 @@ export function TurbineDiagram({ selectedSectionId, onSelectSection, interactive
               </text>
               {/* Active: solid dot at junction */}
               {isActive && (
-                <circle cx={cx} cy={connY - 2} r="3" fill={s.stroke} opacity="1" />
+                <circle cx={cx} cy={connY - 2} r="3.5" fill={s.stroke} opacity="1" />
               )}
               {/* Active: selection chevron indicator above label */}
               {isActive && (
                 <polygon points={`${cx - 5},3 ${cx + 5},3 ${cx},8`}
                   fill={s.stroke} opacity="0.9" />
+              )}
+              {/* Active: "✓" check mark after label text */}
+              {isActive && (
+                <text x={cx + 44} y={19} textAnchor="start"
+                  fill={s.stroke}
+                  fontSize={10}
+                  fontWeight="900"
+                  fontFamily="'Barlow','Inter',sans-serif"
+                  opacity="0.9">✓</text>
               )}
             </g>
           )
@@ -237,26 +246,32 @@ export function TurbineDiagram({ selectedSectionId, onSelectSection, interactive
               onMouseEnter={() => interactive && setHoveredSection(s.id)}
               onMouseLeave={() => interactive && setHoveredSection(null)}
               style={{ cursor: interactive ? 'pointer' : 'default' }}>
-              {/* Outer diffuse glow (active only) */}
+              {/* Outer diffuse glow (active only) — two layers for depth */}
               {isActive && (
-                <polygon points={sectionPoly(s)}
-                  fill={s.glowColor} stroke={s.stroke} strokeWidth="12"
-                  strokeLinejoin="round" opacity="0.35"
-                  style={{ filter: 'blur(8px)' }} />
+                <>
+                  <polygon points={sectionPoly(s)}
+                    fill={s.glowColor} stroke={s.stroke} strokeWidth="18"
+                    strokeLinejoin="round" opacity="0.25"
+                    style={{ filter: 'blur(14px)' }} />
+                  <polygon points={sectionPoly(s)}
+                    fill="none" stroke={s.stroke} strokeWidth="8"
+                    strokeLinejoin="round" opacity="0.18"
+                    style={{ filter: 'blur(4px)' }} />
+                </>
               )}
               {/* Section fill */}
               <polygon points={sectionPoly(s)}
                 fill={fill}
                 stroke={isActive ? s.stroke : isHovered ? s.stroke : 'rgba(255,255,255,0.15)'}
-                strokeWidth={isActive ? 3 : isHovered ? 2 : 1}
+                strokeWidth={isActive ? 3.5 : isHovered ? 2 : 1}
                 strokeLinejoin="round"
                 style={{ transition: 'fill 0.15s, stroke 0.15s, stroke-width 0.15s' }} />
               {/* Active: bright inner border inset */}
               {isActive && (
                 <polygon points={sectionPoly(s)}
                   fill="none"
-                  stroke="rgba(255,255,255,0.35)"
-                  strokeWidth="1.5"
+                  stroke="rgba(255,255,255,0.4)"
+                  strokeWidth="2"
                   strokeLinejoin="round" />
               )}
             </g>
