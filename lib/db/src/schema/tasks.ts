@@ -53,7 +53,9 @@ export const timeEntriesTable = pgTable("time_entries", {
   endTime: timestamp("end_time"),
   duration: integer("duration"),
   pauseReason: text("pause_reason"),
+  status: text("status").notNull().default("completed"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const qcReviewsTable = pgTable("qc_reviews", {

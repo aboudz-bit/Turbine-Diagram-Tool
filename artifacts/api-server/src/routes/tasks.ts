@@ -7,8 +7,10 @@ import {
   qcReviewsTable,
   signaturesTable,
   notificationsTable,
+  attachmentsTable,
 } from "@workspace/db";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, isNull } from "drizzle-orm";
+import { logAuditEvent } from "../lib/auditLog";
 import { isValidTransition, getValidTransitions } from "../lib/state-machine";
 import { validateBody, validateQuery } from "../middleware/validate";
 import {
@@ -162,6 +164,28 @@ router.post(
         ).catch(() => {});
       }
 
+      // Audit: task created
+      await logAuditEvent({
+        taskId: task.id,
+        actorId: req.user!.id,
+        action: "task_created",
+        entityType: "task",
+        entityId: task.id,
+        details: { title, priority, assignedToId: assignedToId ?? null },
+      }).catch(() => {});
+
+      // Audit: task assigned
+      if (assignedToId) {
+        await logAuditEvent({
+          taskId: task.id,
+          actorId: req.user!.id,
+          action: "task_assigned",
+          entityType: "task",
+          entityId: task.id,
+          details: { assignedToId },
+        }).catch(() => {});
+      }
+
       res.status(201).json(full);
     } catch (err) {
       req.log.error({ err }, "Failed to create task");
@@ -240,12 +264,32 @@ router.get("/tasks/:taskId", async (req, res): Promise<void> => {
       .where(eq(signaturesTable.taskId, taskId))
       .orderBy(signaturesTable.createdAt);
 
+    // Attachments
+    const attachments = await db
+      .select({
+        id: attachmentsTable.id,
+        taskId: attachmentsTable.taskId,
+        uploadedByUserId: attachmentsTable.uploadedByUserId,
+        uploaderName: usersTable.name,
+        fileName: attachmentsTable.fileName,
+        mimeType: attachmentsTable.mimeType,
+        fileSize: attachmentsTable.fileSize,
+        storageUrl: attachmentsTable.storageUrl,
+        attachmentType: attachmentsTable.attachmentType,
+        createdAt: attachmentsTable.createdAt,
+      })
+      .from(attachmentsTable)
+      .leftJoin(usersTable, eq(attachmentsTable.uploadedByUserId, usersTable.id))
+      .where(eq(attachmentsTable.taskId, taskId))
+      .orderBy(attachmentsTable.createdAt);
+
     res.json({
       ...task,
       timeEntries: mappedEntries,
       activeTimeEntry: activeEntry,
       qcReviews,
       signatures,
+      attachments,
     });
   } catch (err) {
     req.log.error({ err }, "Failed to get task");
@@ -274,6 +318,18 @@ router.patch(
       if (existing.status === "approved") {
         res.status(403).json({ error: "Approved tasks cannot be modified" });
         return;
+      }
+
+      // Block submit if there is an active running time session
+      if (status === "submitted") {
+        const [activeEntry] = await db
+          .select({ id: timeEntriesTable.id })
+          .from(timeEntriesTable)
+          .where(and(eq(timeEntriesTable.taskId, taskId), isNull(timeEntriesTable.endTime)));
+        if (activeEntry) {
+          res.status(400).json({ error: "Cannot submit: a work session is still running. Please stop or pause the timer first." });
+          return;
+        }
       }
 
       // Require technician signature before submitting
@@ -335,6 +391,16 @@ router.patch(
           `Task "${existing.title}" has been submitted for QC review.`,
         ).catch(() => {});
       }
+
+      // Audit event
+      await logAuditEvent({
+        taskId,
+        actorId: req.user!.id,
+        action: `task_${status}`,
+        entityType: "task",
+        entityId: taskId,
+        details: { fromStatus: effectiveStatus, toStatus: status },
+      }).catch(() => {});
 
       res.json(full);
     } catch (err) {

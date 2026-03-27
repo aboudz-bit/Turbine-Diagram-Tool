@@ -21,16 +21,25 @@ import type {
   AssetComponent,
   AssetSection,
   AssetStage,
+  Attachment,
+  AuditEntry,
   ComponentHistory,
+  CreateAttachmentInput,
+  CreateSignatureInput,
   CreateTaskInput,
   DashboardStats,
   HealthStatus,
   ListTasksParams,
   LoginInput,
   LoginResult,
+  MarkAllNotificationsRead200,
+  Notification,
   PauseTimeInput,
   QcReview,
   QcReviewInput,
+  RequestUploadUrlInput,
+  RequestUploadUrlResponse,
+  Signature,
   StartTimeInput,
   Task,
   TaskDetail,
@@ -1451,6 +1460,525 @@ export const useResumeTimeTracking = <
 };
 
 /**
+ * @summary Stop active work session (marks as completed)
+ */
+export const getStopTimeTrackingUrl = (taskId: number) => {
+  return `/api/tasks/${taskId}/time/stop`;
+};
+
+export const stopTimeTracking = async (
+  taskId: number,
+  options?: RequestInit,
+): Promise<TimeEntry> => {
+  return customFetch<TimeEntry>(getStopTimeTrackingUrl(taskId), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getStopTimeTrackingMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof stopTimeTracking>>,
+    TError,
+    { taskId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof stopTimeTracking>>,
+  TError,
+  { taskId: number },
+  TContext
+> => {
+  const mutationKey = ["stopTimeTracking"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof stopTimeTracking>>,
+    { taskId: number }
+  > = (props) => {
+    const { taskId } = props ?? {};
+
+    return stopTimeTracking(taskId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type StopTimeTrackingMutationResult = NonNullable<
+  Awaited<ReturnType<typeof stopTimeTracking>>
+>;
+
+export type StopTimeTrackingMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Stop active work session (marks as completed)
+ */
+export const useStopTimeTracking = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof stopTimeTracking>>,
+    TError,
+    { taskId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof stopTimeTracking>>,
+  TError,
+  { taskId: number },
+  TContext
+> => {
+  return useMutation(getStopTimeTrackingMutationOptions(options));
+};
+
+/**
+ * @summary List attachments for a task
+ */
+export const getListAttachmentsUrl = (taskId: number) => {
+  return `/api/tasks/${taskId}/attachments`;
+};
+
+export const listAttachments = async (
+  taskId: number,
+  options?: RequestInit,
+): Promise<Attachment[]> => {
+  return customFetch<Attachment[]>(getListAttachmentsUrl(taskId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListAttachmentsQueryKey = (taskId: number) => {
+  return [`/api/tasks/${taskId}/attachments`] as const;
+};
+
+export const getListAttachmentsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listAttachments>>,
+  TError = ErrorType<unknown>,
+>(
+  taskId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listAttachments>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListAttachmentsQueryKey(taskId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listAttachments>>> = ({
+    signal,
+  }) => listAttachments(taskId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!taskId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listAttachments>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListAttachmentsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listAttachments>>
+>;
+export type ListAttachmentsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List attachments for a task
+ */
+
+export function useListAttachments<
+  TData = Awaited<ReturnType<typeof listAttachments>>,
+  TError = ErrorType<unknown>,
+>(
+  taskId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listAttachments>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListAttachmentsQueryOptions(taskId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Save attachment metadata after GCS upload
+ */
+export const getCreateAttachmentUrl = (taskId: number) => {
+  return `/api/tasks/${taskId}/attachments`;
+};
+
+export const createAttachment = async (
+  taskId: number,
+  createAttachmentInput: CreateAttachmentInput,
+  options?: RequestInit,
+): Promise<Attachment> => {
+  return customFetch<Attachment>(getCreateAttachmentUrl(taskId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createAttachmentInput),
+  });
+};
+
+export const getCreateAttachmentMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createAttachment>>,
+    TError,
+    { taskId: number; data: BodyType<CreateAttachmentInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createAttachment>>,
+  TError,
+  { taskId: number; data: BodyType<CreateAttachmentInput> },
+  TContext
+> => {
+  const mutationKey = ["createAttachment"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createAttachment>>,
+    { taskId: number; data: BodyType<CreateAttachmentInput> }
+  > = (props) => {
+    const { taskId, data } = props ?? {};
+
+    return createAttachment(taskId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateAttachmentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createAttachment>>
+>;
+export type CreateAttachmentMutationBody = BodyType<CreateAttachmentInput>;
+export type CreateAttachmentMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Save attachment metadata after GCS upload
+ */
+export const useCreateAttachment = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createAttachment>>,
+    TError,
+    { taskId: number; data: BodyType<CreateAttachmentInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createAttachment>>,
+  TError,
+  { taskId: number; data: BodyType<CreateAttachmentInput> },
+  TContext
+> => {
+  return useMutation(getCreateAttachmentMutationOptions(options));
+};
+
+/**
+ * @summary Delete an attachment
+ */
+export const getDeleteAttachmentUrl = (
+  taskId: number,
+  attachmentId: number,
+) => {
+  return `/api/tasks/${taskId}/attachments/${attachmentId}`;
+};
+
+export const deleteAttachment = async (
+  taskId: number,
+  attachmentId: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteAttachmentUrl(taskId, attachmentId), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteAttachmentMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteAttachment>>,
+    TError,
+    { taskId: number; attachmentId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteAttachment>>,
+  TError,
+  { taskId: number; attachmentId: number },
+  TContext
+> => {
+  const mutationKey = ["deleteAttachment"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteAttachment>>,
+    { taskId: number; attachmentId: number }
+  > = (props) => {
+    const { taskId, attachmentId } = props ?? {};
+
+    return deleteAttachment(taskId, attachmentId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteAttachmentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteAttachment>>
+>;
+
+export type DeleteAttachmentMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete an attachment
+ */
+export const useDeleteAttachment = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteAttachment>>,
+    TError,
+    { taskId: number; attachmentId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteAttachment>>,
+  TError,
+  { taskId: number; attachmentId: number },
+  TContext
+> => {
+  return useMutation(getDeleteAttachmentMutationOptions(options));
+};
+
+/**
+ * @summary Get audit log for a task
+ */
+export const getGetTaskAuditLogUrl = (taskId: number) => {
+  return `/api/tasks/${taskId}/audit`;
+};
+
+export const getTaskAuditLog = async (
+  taskId: number,
+  options?: RequestInit,
+): Promise<AuditEntry[]> => {
+  return customFetch<AuditEntry[]>(getGetTaskAuditLogUrl(taskId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetTaskAuditLogQueryKey = (taskId: number) => {
+  return [`/api/tasks/${taskId}/audit`] as const;
+};
+
+export const getGetTaskAuditLogQueryOptions = <
+  TData = Awaited<ReturnType<typeof getTaskAuditLog>>,
+  TError = ErrorType<unknown>,
+>(
+  taskId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getTaskAuditLog>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetTaskAuditLogQueryKey(taskId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getTaskAuditLog>>> = ({
+    signal,
+  }) => getTaskAuditLog(taskId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!taskId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getTaskAuditLog>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetTaskAuditLogQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getTaskAuditLog>>
+>;
+export type GetTaskAuditLogQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get audit log for a task
+ */
+
+export function useGetTaskAuditLog<
+  TData = Awaited<ReturnType<typeof getTaskAuditLog>>,
+  TError = ErrorType<unknown>,
+>(
+  taskId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getTaskAuditLog>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetTaskAuditLogQueryOptions(taskId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Request a presigned URL for file upload
+ */
+export const getRequestUploadUrlUrl = () => {
+  return `/api/storage/uploads/request-url`;
+};
+
+export const requestUploadUrl = async (
+  requestUploadUrlInput: RequestUploadUrlInput,
+  options?: RequestInit,
+): Promise<RequestUploadUrlResponse> => {
+  return customFetch<RequestUploadUrlResponse>(getRequestUploadUrlUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(requestUploadUrlInput),
+  });
+};
+
+export const getRequestUploadUrlMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof requestUploadUrl>>,
+    TError,
+    { data: BodyType<RequestUploadUrlInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof requestUploadUrl>>,
+  TError,
+  { data: BodyType<RequestUploadUrlInput> },
+  TContext
+> => {
+  const mutationKey = ["requestUploadUrl"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof requestUploadUrl>>,
+    { data: BodyType<RequestUploadUrlInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return requestUploadUrl(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RequestUploadUrlMutationResult = NonNullable<
+  Awaited<ReturnType<typeof requestUploadUrl>>
+>;
+export type RequestUploadUrlMutationBody = BodyType<RequestUploadUrlInput>;
+export type RequestUploadUrlMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Request a presigned URL for file upload
+ */
+export const useRequestUploadUrl = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof requestUploadUrl>>,
+    TError,
+    { data: BodyType<RequestUploadUrlInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof requestUploadUrl>>,
+  TError,
+  { data: BodyType<RequestUploadUrlInput> },
+  TContext
+> => {
+  return useMutation(getRequestUploadUrlMutationOptions(options));
+};
+
+/**
  * @summary List QC reviews for a task
  */
 export const getListQcReviewsUrl = (taskId: number) => {
@@ -1622,6 +2150,423 @@ export const useSubmitQcReview = <
   TContext
 > => {
   return useMutation(getSubmitQcReviewMutationOptions(options));
+};
+
+/**
+ * @summary List electronic signatures for a task
+ */
+export const getListSignaturesUrl = (taskId: number) => {
+  return `/api/tasks/${taskId}/signatures`;
+};
+
+export const listSignatures = async (
+  taskId: number,
+  options?: RequestInit,
+): Promise<Signature[]> => {
+  return customFetch<Signature[]>(getListSignaturesUrl(taskId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListSignaturesQueryKey = (taskId: number) => {
+  return [`/api/tasks/${taskId}/signatures`] as const;
+};
+
+export const getListSignaturesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listSignatures>>,
+  TError = ErrorType<unknown>,
+>(
+  taskId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listSignatures>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListSignaturesQueryKey(taskId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listSignatures>>> = ({
+    signal,
+  }) => listSignatures(taskId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!taskId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listSignatures>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListSignaturesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listSignatures>>
+>;
+export type ListSignaturesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List electronic signatures for a task
+ */
+
+export function useListSignatures<
+  TData = Awaited<ReturnType<typeof listSignatures>>,
+  TError = ErrorType<unknown>,
+>(
+  taskId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listSignatures>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListSignaturesQueryOptions(taskId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Add an electronic signature to a task
+ */
+export const getAddSignatureUrl = (taskId: number) => {
+  return `/api/tasks/${taskId}/signatures`;
+};
+
+export const addSignature = async (
+  taskId: number,
+  createSignatureInput: CreateSignatureInput,
+  options?: RequestInit,
+): Promise<Signature> => {
+  return customFetch<Signature>(getAddSignatureUrl(taskId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createSignatureInput),
+  });
+};
+
+export const getAddSignatureMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addSignature>>,
+    TError,
+    { taskId: number; data: BodyType<CreateSignatureInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof addSignature>>,
+  TError,
+  { taskId: number; data: BodyType<CreateSignatureInput> },
+  TContext
+> => {
+  const mutationKey = ["addSignature"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof addSignature>>,
+    { taskId: number; data: BodyType<CreateSignatureInput> }
+  > = (props) => {
+    const { taskId, data } = props ?? {};
+
+    return addSignature(taskId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AddSignatureMutationResult = NonNullable<
+  Awaited<ReturnType<typeof addSignature>>
+>;
+export type AddSignatureMutationBody = BodyType<CreateSignatureInput>;
+export type AddSignatureMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Add an electronic signature to a task
+ */
+export const useAddSignature = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addSignature>>,
+    TError,
+    { taskId: number; data: BodyType<CreateSignatureInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof addSignature>>,
+  TError,
+  { taskId: number; data: BodyType<CreateSignatureInput> },
+  TContext
+> => {
+  return useMutation(getAddSignatureMutationOptions(options));
+};
+
+/**
+ * @summary List notifications for the current user
+ */
+export const getListNotificationsUrl = () => {
+  return `/api/notifications`;
+};
+
+export const listNotifications = async (
+  options?: RequestInit,
+): Promise<Notification[]> => {
+  return customFetch<Notification[]>(getListNotificationsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListNotificationsQueryKey = () => {
+  return [`/api/notifications`] as const;
+};
+
+export const getListNotificationsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listNotifications>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listNotifications>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListNotificationsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listNotifications>>
+  > = ({ signal }) => listNotifications({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listNotifications>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListNotificationsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listNotifications>>
+>;
+export type ListNotificationsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List notifications for the current user
+ */
+
+export function useListNotifications<
+  TData = Awaited<ReturnType<typeof listNotifications>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listNotifications>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListNotificationsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Mark all notifications as read
+ */
+export const getMarkAllNotificationsReadUrl = () => {
+  return `/api/notifications/read-all`;
+};
+
+export const markAllNotificationsRead = async (
+  options?: RequestInit,
+): Promise<MarkAllNotificationsRead200> => {
+  return customFetch<MarkAllNotificationsRead200>(
+    getMarkAllNotificationsReadUrl(),
+    {
+      ...options,
+      method: "PATCH",
+    },
+  );
+};
+
+export const getMarkAllNotificationsReadMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof markAllNotificationsRead>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof markAllNotificationsRead>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["markAllNotificationsRead"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof markAllNotificationsRead>>,
+    void
+  > = () => {
+    return markAllNotificationsRead(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type MarkAllNotificationsReadMutationResult = NonNullable<
+  Awaited<ReturnType<typeof markAllNotificationsRead>>
+>;
+
+export type MarkAllNotificationsReadMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Mark all notifications as read
+ */
+export const useMarkAllNotificationsRead = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof markAllNotificationsRead>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof markAllNotificationsRead>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getMarkAllNotificationsReadMutationOptions(options));
+};
+
+/**
+ * @summary Mark a single notification as read
+ */
+export const getMarkNotificationReadUrl = (id: number) => {
+  return `/api/notifications/${id}/read`;
+};
+
+export const markNotificationRead = async (
+  id: number,
+  options?: RequestInit,
+): Promise<Notification> => {
+  return customFetch<Notification>(getMarkNotificationReadUrl(id), {
+    ...options,
+    method: "PATCH",
+  });
+};
+
+export const getMarkNotificationReadMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof markNotificationRead>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof markNotificationRead>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["markNotificationRead"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof markNotificationRead>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return markNotificationRead(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type MarkNotificationReadMutationResult = NonNullable<
+  Awaited<ReturnType<typeof markNotificationRead>>
+>;
+
+export type MarkNotificationReadMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Mark a single notification as read
+ */
+export const useMarkNotificationRead = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof markNotificationRead>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof markNotificationRead>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getMarkNotificationReadMutationOptions(options));
 };
 
 /**

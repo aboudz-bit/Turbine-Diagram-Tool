@@ -5,9 +5,11 @@
  * Maintenance Task & QC Management System API
  * OpenAPI spec version: 0.2.0
  */
+import type { AuditEntry } from "./auditEntry";
 import type { DashboardStatsBySectionItem } from "./dashboardStatsBySectionItem";
 import type { DashboardStatsByStageItem } from "./dashboardStatsByStageItem";
 import type { DashboardStatsByStatus } from "./dashboardStatsByStatus";
+import type { DashboardStatsByTurbineItem } from "./dashboardStatsByTurbineItem";
 import type { DashboardStatsTechnicianPerformanceItem } from "./dashboardStatsTechnicianPerformanceItem";
 
 export interface DashboardStats {
@@ -16,6 +18,10 @@ export interface DashboardStats {
   bySection: DashboardStatsBySectionItem[];
   byStage: DashboardStatsByStageItem[];
   technicianPerformance?: DashboardStatsTechnicianPerformanceItem[];
+  byTurbine?: DashboardStatsByTurbineItem[];
   overdueCount: number;
   approvalRate?: number;
+  totalLoggedHours?: number;
+  activeSessionCount?: number;
+  recentActivity?: AuditEntry[];
 }

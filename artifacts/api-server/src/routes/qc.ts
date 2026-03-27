@@ -6,6 +6,7 @@ import { validateBody } from "../middleware/validate";
 import { SubmitQcReviewBody } from "@workspace/api-zod";
 import { requireRole } from "../middleware/auth";
 import { createNotification, notifyRoles } from "../lib/notifications";
+import { logAuditEvent } from "../lib/auditLog";
 
 const router: IRouter = Router();
 
@@ -127,6 +128,17 @@ router.post(
       if (task.createdById && task.createdById !== task.assignedToId) {
         await createNotification(task.createdById, taskId, notificationType, notificationTitle, notificationMsg).catch(() => {});
       }
+
+      // Audit event
+      const auditAction = decision === "approved" ? "task_approved" : "task_rejected";
+      await logAuditEvent({
+        taskId,
+        actorId: reviewerId,
+        action: auditAction,
+        entityType: "qc_review",
+        entityId: review.id,
+        details: { decision, comments: comments ?? null },
+      }).catch(() => {});
 
       res.status(201).json({
         id: review.id,

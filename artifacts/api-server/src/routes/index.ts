@@ -9,6 +9,9 @@ import qcRouter from "./qc";
 import dashboardRouter from "./dashboard";
 import signaturesRouter from "./signatures";
 import notificationsRouter from "./notifications";
+import attachmentsRouter from "./attachments";
+import auditRouter from "./audit";
+import storageRouter from "./storage";
 
 const router: IRouter = Router();
 
@@ -25,5 +28,8 @@ router.use(qcRouter);
 router.use(dashboardRouter);
 router.use(signaturesRouter);
 router.use(notificationsRouter);
+router.use(attachmentsRouter);
+router.use(auditRouter);
+router.use(storageRouter);
 
 export default router;

@@ -11,6 +11,7 @@ import {
   signaturesTable,
   notificationsTable,
   auditLogTable,
+  attachmentsTable,
 } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { signToken, type AuthUser } from "../middleware/auth";
@@ -53,6 +54,7 @@ export async function seedTestData() {
 
   // Clean in reverse dependency order (audit_log before users to avoid FK violation)
   await db.delete(auditLogTable);
+  await db.delete(attachmentsTable);
   await db.delete(notificationsTable);
   await db.delete(signaturesTable);
   await db.delete(qcReviewsTable);
@@ -112,6 +114,8 @@ export async function seedTestData() {
 }
 
 export async function cleanupTestData() {
+  await db.delete(auditLogTable);
+  await db.delete(attachmentsTable);
   await db.delete(notificationsTable);
   await db.delete(signaturesTable);
   await db.delete(qcReviewsTable);

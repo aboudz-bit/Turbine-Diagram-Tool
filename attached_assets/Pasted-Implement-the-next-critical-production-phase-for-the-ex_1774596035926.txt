@@ -1,0 +1,296 @@
+Implement the next critical production phase for the existing Gas Turbine Maintenance & QC system.
+
+IMPORTANT:
+- SAFE EXTENSION MODE ONLY
+- Do not refactor stable working flows unless absolutely necessary
+- Do not break:
+  - turbine-type-aware logic
+  - signatures
+  - notifications
+  - role permissions
+  - QC workflow
+  - optimistic locking
+- Extend the system carefully and incrementally
+- Preserve the current Siemens-style light UI direction
+
+This phase must add 4 core operational capabilities:
+
+1. REAL TIME TRACKING
+2. ATTACHMENTS (IMAGES / FILES)
+3. AUDIT LOG
+4. DASHBOARD IMPROVEMENTS
+
+==================================================
+PHASE 1 — REAL TIME TRACKING
+==================================================
+
+Goal:
+Turn the current time tracking from basic/partial into a real operational work timer.
+
+Requirements:
+
+1. Task work session model
+Add/complete a dedicated work session / time log model with fields like:
+- id
+- taskId
+- userId
+- startedAt
+- endedAt (nullable while active)
+- durationMinutes
+- status:
+  - running
+  - paused
+  - completed
+- pauseReason (nullable)
+- createdAt
+- updatedAt
+
+2. Workflow behavior
+- Technician can Start Work
+- Technician can Pause Work
+- Technician can Resume Work
+- Technician can Stop / Complete work session when appropriate
+- Only one active running session per task per user
+- Prevent duplicate concurrent running sessions
+- When paused/resumed, preserve previous duration correctly
+- Total logged time must be aggregated correctly per task
+
+3. UI
+In Task Detail:
+- show live timer while running
+- show total logged time
+- show session history
+- show status badge:
+  - Running
+  - Paused
+  - Completed
+- add pause reason input when pausing
+  examples:
+  - waiting for parts
+  - safety hold
+  - access issue
+  - inspection delay
+  - other
+
+4. Validation
+- technician can only start/pause/resume their own assigned task unless operational roles are intentionally allowed
+- cannot submit for QC while a running session still exists
+- if task is approved/locked, time actions must be disabled
+
+5. Dashboard metrics
+Use actual logged data for:
+- average completion time
+- total logged hours
+- active tasks in progress
+- technician utilization (basic level)
+
+==================================================
+PHASE 2 — ATTACHMENTS (IMAGES / FILES)
+==================================================
+
+Goal:
+Allow field users to attach evidence to maintenance tasks.
+
+Requirements:
+
+1. Attachment model
+Add attachments table/model:
+- id
+- taskId
+- uploadedByUserId
+- fileName
+- mimeType
+- fileSize
+- storageUrl
+- attachmentType:
+  - image
+  - file
+- createdAt
+
+2. Upload support
+Phase 1 scope:
+- image upload required
+- optional file upload support if easy
+- support multiple attachments per task
+
+3. Storage
+Use a safe storage approach appropriate for the current environment.
+If external object storage is not already configured:
+- implement in a way that supports future migration to S3/R2
+- do not hardcode an unsafe long-term hack
+- keep storage abstraction clean
+
+4. UI
+In Task Detail:
+- add "Attachments" section
+- allow technician / engineer / supervisor to upload where permitted
+- show image thumbnails
+- click to preview full image
+- allow deletion only by authorized roles or uploader if appropriate
+
+5. Workflow usage
+- technicians can attach before/after work evidence
+- QC reviewer can inspect attachments during approval
+- attachments must be visible in QC context
+
+6. Validation
+- limit size
+- allow only safe mime types
+- show clear upload errors
+- do not silently fail
+
+==================================================
+PHASE 3 — AUDIT LOG
+==================================================
+
+Goal:
+Track who did what and when across the task lifecycle.
+
+Requirements:
+
+1. Add audit log model
+Fields:
+- id
+- taskId (nullable when needed)
+- userId
+- action
+- entityType
+- entityId
+- detailsJson
+- createdAt
+
+2. Audit events to record
+At minimum:
+- task_created
+- task_assigned
+- task_started
+- task_paused
+- task_resumed
+- task_submitted
+- task_rejected
+- task_revision_needed
+- task_approved
+- signature_saved
+- attachment_uploaded
+- attachment_deleted
+- notification_created
+
+3. Backend
+Create a reusable helper:
+- logAuditEvent(...)
+
+Use it consistently across backend routes/services.
+
+4. UI
+In Task Detail:
+- add "Audit Timeline" or "Activity Log" section
+- show:
+  - action label
+  - actor name
+  - timestamp
+  - optional details summary
+
+5. Readability
+Make audit entries human-readable, not raw JSON dumps
+
+==================================================
+PHASE 4 — DASHBOARD IMPROVEMENTS
+==================================================
+
+Goal:
+Upgrade the dashboard from basic cards into a true operational monitoring view.
+
+Requirements:
+
+1. Metrics
+Use real DB-backed calculations for:
+- open tasks
+- in progress tasks
+- submitted / awaiting QC
+- overdue tasks
+- approved tasks
+- average task completion time
+- total logged labor hours
+- technician workload
+
+2. Charts / tables
+Add at least:
+- tasks by status
+- tasks by turbine section
+- technician workload / utilization
+- recent activity feed using audit log
+
+3. Operational emphasis
+Dashboard should answer:
+- what needs action now
+- who is working
+- what is overdue
+- what was recently approved/rejected
+
+4. Do not overcomplicate
+Keep it clean and readable
+No fake analytics
+Use real task/time/audit data
+
+==================================================
+BACKEND RULES
+==================================================
+
+1. Update OpenAPI spec for:
+- time tracking endpoints
+- attachments endpoints
+- audit log responses if exposed
+- dashboard response updates if needed
+
+2. Regenerate API client + Zod schemas
+3. Keep backend typecheck/build clean
+4. Keep frontend build clean
+5. Add server-side authorization for all new actions
+
+==================================================
+FRONTEND RULES
+==================================================
+
+1. Preserve existing working pages
+2. Integrate new sections into Task Detail cleanly:
+- Time Tracking
+- Attachments
+- Audit Log
+3. Do not redesign everything
+4. Keep current Siemens-style light theme
+5. Show clear loading / empty / error states
+
+==================================================
+TESTING REQUIREMENTS
+==================================================
+
+Add/update integration tests for:
+1. technician can start work on assigned task
+2. technician cannot start duplicate running session
+3. pause stores pause reason
+4. submit blocked while timer still running
+5. approved task blocks time actions
+6. attachment upload succeeds
+7. invalid attachment type rejected
+8. audit log created on task start/pause/resume/submit/approve
+9. dashboard metrics include real logged time
+10. unauthorized user gets 403 where applicable
+
+==================================================
+DELIVERABLES
+==================================================
+
+At the end provide:
+1. summary of what was added
+2. files changed
+3. DB schema changes
+4. new endpoints
+5. tests added
+6. any limitations / technical debt still remaining
+
+Do not add another major feature after this.
+Only implement:
+- real time tracking
+- attachments
+- audit log
+- dashboard improvements

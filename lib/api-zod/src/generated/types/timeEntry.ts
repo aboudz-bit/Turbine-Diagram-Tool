@@ -5,6 +5,7 @@
  * Maintenance Task & QC Management System API
  * OpenAPI spec version: 0.2.0
  */
+import type { TimeEntryStatus } from "./timeEntryStatus";
 
 export interface TimeEntry {
   id: number;
@@ -15,5 +16,6 @@ export interface TimeEntry {
   endTime?: Date;
   durationMinutes?: number;
   pauseReason?: string;
+  status?: TimeEntryStatus;
   isActive: boolean;
 }

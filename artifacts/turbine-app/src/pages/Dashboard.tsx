@@ -1,13 +1,14 @@
 import * as React from "react"
 import { useListTasks, useGetDashboardStats } from "@workspace/api-client-react"
-import { Card, Badge, Button } from "@/components/ui/core"
+import { Card, Badge } from "@/components/ui/core"
 import { useLocation } from "wouter"
 import {
   AlertTriangle, CheckCircle2, Clock, Activity,
   ArrowRight, ShieldCheck, Users, Zap, Timer,
-  TrendingUp, ChevronRight, Cpu, BarChart2
+  TrendingUp, ChevronRight, Cpu, BarChart2, History,
 } from "lucide-react"
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts"
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from "recharts"
+import { formatDistanceToNow } from "date-fns"
 
 function StatusDot({ status }: { status: string }) {
   const colors: Record<string, string> = {
@@ -80,11 +81,17 @@ export default function Dashboard() {
       : '#7c3aed'
   })) || []
 
+  const loggedHoursDisplay = stats?.totalLoggedHours != null
+    ? `${stats.totalLoggedHours.toFixed(1)}h`
+    : '—'
+
   const KPIS = [
-    { label: 'Total Tasks',   value: computed.total,     icon: Activity,       color: 'text-sky-600',    bg: 'bg-sky-50',    border: 'border-sky-200' },
-    { label: 'In Progress',   value: computed.inProgress, icon: Zap,           color: 'text-amber-600',  bg: 'bg-amber-50',  border: computed.inProgress > 0 ? 'border-amber-300' : 'border-border' },
-    { label: 'Pending QC',    value: computed.pendingQc, icon: ShieldCheck,    color: 'text-purple-600', bg: 'bg-purple-50', border: computed.pendingQc > 0 ? 'border-purple-300' : 'border-border' },
-    { label: 'Overdue',       value: computed.overdue,   icon: AlertTriangle,  color: 'text-red-600',    bg: 'bg-red-50',    border: computed.overdue > 0 ? 'border-red-300' : 'border-border', pulse: computed.overdue > 0 },
+    { label: 'Total Tasks',    value: computed.total,                    icon: Activity,       color: 'text-sky-600',    bg: 'bg-sky-50',    border: 'border-sky-200' },
+    { label: 'In Progress',    value: computed.inProgress,               icon: Zap,            color: 'text-amber-600',  bg: 'bg-amber-50',  border: computed.inProgress > 0 ? 'border-amber-300' : 'border-border' },
+    { label: 'Pending QC',     value: computed.pendingQc,                icon: ShieldCheck,    color: 'text-purple-600', bg: 'bg-purple-50', border: computed.pendingQc > 0 ? 'border-purple-300' : 'border-border' },
+    { label: 'Overdue',        value: computed.overdue,                  icon: AlertTriangle,  color: 'text-red-600',    bg: 'bg-red-50',    border: computed.overdue > 0 ? 'border-red-300' : 'border-border', pulse: computed.overdue > 0 },
+    { label: 'Hours Logged',   value: loggedHoursDisplay,                icon: Clock,          color: 'text-emerald-600',bg: 'bg-emerald-50',border: 'border-emerald-200', isString: true },
+    { label: 'Active Sessions',value: stats?.activeSessionCount ?? 0,    icon: Timer,          color: 'text-sky-600',    bg: 'bg-sky-50',    border: (stats?.activeSessionCount ?? 0) > 0 ? 'border-sky-300' : 'border-border', pulse: (stats?.activeSessionCount ?? 0) > 0 },
   ]
 
   return (
@@ -153,18 +160,24 @@ export default function Dashboard() {
 
       {/* ── SYSTEM STATUS KPIs ── */}
       <SectionHeader icon={Cpu} label="System Status" />
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         {KPIS.map((kpi, i) => (
           <Card key={i}
-            className={`p-6 flex items-center gap-4 hover:-translate-y-0.5 hover:shadow-md transition-all duration-150 cursor-default ${kpi.border}`}>
-            <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${kpi.bg} border border-current/10`}>
-              <kpi.icon className={`w-5 h-5 ${kpi.color}`} />
+            className={`p-5 flex items-center gap-3 hover:-translate-y-0.5 hover:shadow-md transition-all duration-150 cursor-default ${kpi.border}`}>
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${kpi.bg} border border-current/10`}>
+              <kpi.icon className={`w-4.5 h-4.5 ${kpi.color} w-5 h-5`} />
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">{kpi.label}</p>
-              {isLoading
-                ? <div className="h-8 w-10 bg-muted animate-pulse rounded mt-1" />
-                : <p className={`text-3xl font-display font-bold mt-0.5 tracking-tight ${kpi.pulse && kpi.value > 0 ? 'text-red-600' : 'text-foreground'}`}>{kpi.value}</p>
+            <div className="min-w-0">
+              <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide leading-tight">{kpi.label}</p>
+              {(isLoading || (kpi.isString ? statsLoading : false))
+                ? <div className="h-7 w-10 bg-muted animate-pulse rounded mt-1" />
+                : <p className={`text-2xl font-display font-bold mt-0.5 tracking-tight ${
+                    'pulse' in kpi && kpi.pulse
+                      ? (kpi.label === 'Overdue' ? 'text-red-600' : 'text-sky-600')
+                      : 'text-foreground'
+                  }`}>
+                    {kpi.isString ? kpi.value : kpi.value}
+                  </p>
               }
             </div>
           </Card>
@@ -285,7 +298,7 @@ export default function Dashboard() {
 
       {/* ── ANALYTICS ── */}
       <SectionHeader icon={BarChart2} label="Analytics & Workforce" />
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 mb-5">
         {/* Section Chart */}
         <Card className="lg:col-span-2 p-6 hover:shadow-md transition-all duration-150">
           <div className="flex items-center gap-2.5 mb-6">
@@ -391,6 +404,113 @@ export default function Dashboard() {
                   )}
               </tbody>
             </table>
+          </div>
+        </Card>
+      </div>
+
+      {/* ── TURBINE DISTRIBUTION + RECENT ACTIVITY ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+
+        {/* By-turbine pie */}
+        <Card className="lg:col-span-2 p-6 hover:shadow-md transition-all duration-150">
+          <div className="flex items-center gap-2.5 mb-4">
+            <div className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+              <Cpu className="w-3.5 h-3.5 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-sm text-foreground">By Turbine Unit</h3>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Task distribution per asset</p>
+            </div>
+          </div>
+          {statsLoading ? (
+            <div className="h-44 flex items-center justify-center">
+              <div className="animate-pulse flex gap-3 items-end">
+                {[60, 90, 50].map((h, i) => (
+                  <div key={i} className="w-8 bg-muted rounded-t" style={{ height: h }} />
+                ))}
+              </div>
+            </div>
+          ) : stats?.byTurbine && stats.byTurbine.length > 0 ? (
+            <div className="h-44">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={stats.byTurbine.map((t, i) => ({
+                      name: t.turbineName,
+                      value: t.count,
+                      fill: i === 0 ? '#0284c7' : i === 1 ? '#7c3aed' : '#059669',
+                    }))}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={42}
+                    outerRadius={68}
+                    paddingAngle={3}
+                    dataKey="value"
+                  >
+                    {stats.byTurbine.map((_, i) => (
+                      <Cell key={i} fill={i === 0 ? '#0284c7' : i === 1 ? '#7c3aed' : '#059669'} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '12px' }}
+                  />
+                  <Legend
+                    iconType="circle"
+                    iconSize={8}
+                    wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="h-44 flex items-center justify-center text-sm text-muted-foreground">No data</div>
+          )}
+        </Card>
+
+        {/* Recent Activity feed */}
+        <Card className="lg:col-span-3 p-0 overflow-hidden hover:shadow-md transition-all duration-150">
+          <div className="flex items-center gap-2.5 px-6 py-4 border-b border-border">
+            <div className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+              <History className="w-3.5 h-3.5 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-sm text-foreground">Recent Activity</h3>
+              <p className="text-[10px] text-muted-foreground">Latest system events</p>
+            </div>
+          </div>
+          <div className="divide-y divide-border">
+            {statsLoading ? (
+              Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="px-6 py-4 flex items-start gap-3">
+                  <div className="w-2 h-2 mt-1.5 rounded-full bg-muted animate-pulse flex-shrink-0" />
+                  <div className="flex-1 space-y-1.5">
+                    <div className="h-3 w-3/4 bg-muted animate-pulse rounded" />
+                    <div className="h-2.5 w-1/2 bg-muted animate-pulse rounded" />
+                  </div>
+                </div>
+              ))
+            ) : stats?.recentActivity && stats.recentActivity.length > 0 ? (
+              stats.recentActivity.slice(0, 8).map((entry) => (
+                <div key={entry.id} className="px-6 py-3.5 flex items-start gap-3 hover:bg-muted/30 transition-colors">
+                  <span className="w-1.5 h-1.5 mt-1.5 rounded-full bg-primary/50 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-foreground font-medium leading-snug">
+                      {entry.actionLabel}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      {entry.actorName}
+                    </p>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground flex-shrink-0">
+                    {formatDistanceToNow(new Date(entry.createdAt), { addSuffix: true })}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <div className="px-6 py-8 text-center text-sm text-muted-foreground">
+                No recent activity
+              </div>
+            )}
           </div>
         </Card>
       </div>

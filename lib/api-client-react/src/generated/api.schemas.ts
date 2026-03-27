@@ -131,6 +131,15 @@ export interface TaskListResponse {
   total: number;
 }
 
+export type TimeEntryStatus =
+  (typeof TimeEntryStatus)[keyof typeof TimeEntryStatus];
+
+export const TimeEntryStatus = {
+  running: "running",
+  paused: "paused",
+  completed: "completed",
+} as const;
+
 export interface TimeEntry {
   id: number;
   taskId: number;
@@ -140,6 +149,7 @@ export interface TimeEntry {
   endTime?: string;
   durationMinutes?: number;
   pauseReason?: string;
+  status?: TimeEntryStatus;
   isActive: boolean;
 }
 
@@ -187,14 +197,40 @@ export type DashboardStatsTechnicianPerformanceItem = {
   avgCompletionHours?: number;
 };
 
+export type DashboardStatsByTurbineItem = {
+  assetName: string;
+  assetModel: string;
+  count: number;
+};
+
+export type AuditEntryDetails = { [key: string]: unknown };
+
+export interface AuditEntry {
+  id: number;
+  action: string;
+  actionLabel: string;
+  entityType: string;
+  entityId: number;
+  taskId?: number;
+  actorId?: number;
+  actorName: string;
+  actorRole?: string;
+  details?: AuditEntryDetails;
+  createdAt: string;
+}
+
 export interface DashboardStats {
   totalTasks: number;
   byStatus: DashboardStatsByStatus;
   bySection: DashboardStatsBySectionItem[];
   byStage: DashboardStatsByStageItem[];
   technicianPerformance?: DashboardStatsTechnicianPerformanceItem[];
+  byTurbine?: DashboardStatsByTurbineItem[];
   overdueCount: number;
   approvalRate?: number;
+  totalLoggedHours?: number;
+  activeSessionCount?: number;
+  recentActivity?: AuditEntry[];
 }
 
 export type CreateTaskInputPriority =
@@ -263,10 +299,108 @@ export interface QcReviewInput {
   comments?: string;
 }
 
+export type SignatureSignatureType =
+  (typeof SignatureSignatureType)[keyof typeof SignatureSignatureType];
+
+export const SignatureSignatureType = {
+  technician_completion: "technician_completion",
+  supervisor_qc_approval: "supervisor_qc_approval",
+} as const;
+
+export interface Signature {
+  id: number;
+  taskId: number;
+  userId: number;
+  signatureType: SignatureSignatureType;
+  signerName: string;
+  signerRole: string;
+  createdAt: string;
+}
+
+export type CreateSignatureInputSignatureType =
+  (typeof CreateSignatureInputSignatureType)[keyof typeof CreateSignatureInputSignatureType];
+
+export const CreateSignatureInputSignatureType = {
+  technician_completion: "technician_completion",
+  supervisor_qc_approval: "supervisor_qc_approval",
+} as const;
+
+export interface CreateSignatureInput {
+  signatureType: CreateSignatureInputSignatureType;
+  /** Base64-encoded PNG image of the signature */
+  signatureData: string;
+}
+
+export type NotificationType =
+  (typeof NotificationType)[keyof typeof NotificationType];
+
+export const NotificationType = {
+  task_assigned: "task_assigned",
+  task_submitted: "task_submitted",
+  task_rejected: "task_rejected",
+  task_revision_needed: "task_revision_needed",
+  task_approved: "task_approved",
+  task_overdue: "task_overdue",
+} as const;
+
+export interface Notification {
+  id: number;
+  userId: number;
+  taskId?: number;
+  type: NotificationType;
+  title: string;
+  message: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export type AttachmentAttachmentType =
+  (typeof AttachmentAttachmentType)[keyof typeof AttachmentAttachmentType];
+
+export const AttachmentAttachmentType = {
+  image: "image",
+  file: "file",
+} as const;
+
+export interface Attachment {
+  id: number;
+  taskId: number;
+  uploadedByUserId: number;
+  uploaderName?: string;
+  fileName: string;
+  mimeType: string;
+  fileSize: number;
+  storageUrl: string;
+  attachmentType: AttachmentAttachmentType;
+  createdAt: string;
+}
+
+export interface CreateAttachmentInput {
+  fileName: string;
+  mimeType: string;
+  fileSize?: number;
+  storageUrl: string;
+}
+
+export interface RequestUploadUrlInput {
+  name: string;
+  size?: number;
+  contentType: string;
+}
+
+export interface RequestUploadUrlResponse {
+  uploadURL: string;
+  objectPath: string;
+}
+
 export type ListTasksParams = {
   status?: string;
   assignedTo?: number;
   sectionId?: number;
   limit?: number;
   offset?: number;
+};
+
+export type MarkAllNotificationsRead200 = {
+  success?: boolean;
 };
