@@ -30,6 +30,7 @@ export * from "./qcReviewInputDecision";
 export * from "./startTimeInput";
 export * from "./task";
 export * from "./taskDetail";
+export * from "./taskListResponse";
 export * from "./taskPriority";
 export * from "./taskStatus";
 export * from "./timeEntry";

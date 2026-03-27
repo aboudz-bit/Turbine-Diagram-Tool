@@ -82,6 +82,7 @@ export const TaskStatus = {
   under_qc: "under_qc",
   approved: "approved",
   rejected: "rejected",
+  revision_needed: "revision_needed",
   overdue: "overdue",
 } as const;
 
@@ -122,6 +123,11 @@ export interface ComponentHistory {
   avgRepairHours?: number;
   lastMaintenanceDate?: string;
   tasks: Task[];
+}
+
+export interface TaskListResponse {
+  data: Task[];
+  total: number;
 }
 
 export interface TimeEntry {
@@ -224,6 +230,7 @@ export const UpdateTaskStatusInputStatus = {
   under_qc: "under_qc",
   approved: "approved",
   rejected: "rejected",
+  revision_needed: "revision_needed",
   overdue: "overdue",
 } as const;
 
@@ -258,4 +265,6 @@ export type ListTasksParams = {
   status?: string;
   assignedTo?: number;
   sectionId?: number;
+  limit?: number;
+  offset?: number;
 };

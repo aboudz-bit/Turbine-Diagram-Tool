@@ -13,6 +13,7 @@ export const taskStatusEnum = pgEnum("task_status", [
   "under_qc",
   "approved",
   "rejected",
+  "revision_needed",
   "overdue",
 ]);
 

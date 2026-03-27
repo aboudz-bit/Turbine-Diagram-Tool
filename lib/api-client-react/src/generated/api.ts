@@ -34,6 +34,7 @@ import type {
   StartTimeInput,
   Task,
   TaskDetail,
+  TaskListResponse,
   TimeEntry,
   UpdateTaskStatusInput,
   User,
@@ -782,8 +783,8 @@ export const getListTasksUrl = (params?: ListTasksParams) => {
 export const listTasks = async (
   params?: ListTasksParams,
   options?: RequestInit,
-): Promise<Task[]> => {
-  return customFetch<Task[]>(getListTasksUrl(params), {
+): Promise<TaskListResponse> => {
+  return customFetch<TaskListResponse>(getListTasksUrl(params), {
     ...options,
     method: "GET",
   });

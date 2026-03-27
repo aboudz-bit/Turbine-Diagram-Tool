@@ -3,6 +3,7 @@ import { db } from "@workspace/db";
 import { timeEntriesTable, tasksTable, usersTable } from "@workspace/db";
 import { eq, isNull, and } from "drizzle-orm";
 import { isValidTransition } from "../lib/state-machine";
+import { computeEffectiveStatus } from "../lib/task-utils";
 import { validateBody } from "../middleware/validate";
 import { PauseTimeTrackingBody } from "@workspace/api-zod";
 
@@ -61,9 +62,10 @@ router.post("/tasks/:taskId/time", async (req, res): Promise<void> => {
       return;
     }
 
-    if (!isValidTransition(task.status, "in_progress")) {
+    const effectiveStatus = computeEffectiveStatus(task);
+    if (!isValidTransition(effectiveStatus, "in_progress")) {
       res.status(400).json({
-        error: `Cannot start time tracking: task is in '${task.status}' status`,
+        error: `Cannot start time tracking: task is in '${effectiveStatus}' status`,
       });
       return;
     }
@@ -152,9 +154,10 @@ router.post(
         res.status(404).json({ error: "Task not found" });
         return;
       }
-      if (!isValidTransition(task.status, "paused")) {
+      const effectiveStatus = computeEffectiveStatus(task);
+      if (!isValidTransition(effectiveStatus, "paused")) {
         res.status(400).json({
-          error: `Cannot pause: task is in '${task.status}' status`,
+          error: `Cannot pause: task is in '${effectiveStatus}' status`,
         });
         return;
       }
@@ -237,9 +240,10 @@ router.post("/tasks/:taskId/time/resume", async (req, res): Promise<void> => {
       res.status(404).json({ error: "Task not found" });
       return;
     }
-    if (!isValidTransition(task.status, "in_progress")) {
+    const effectiveStatus = computeEffectiveStatus(task);
+    if (!isValidTransition(effectiveStatus, "in_progress")) {
       res.status(400).json({
-        error: `Cannot resume: task is in '${task.status}' status`,
+        error: `Cannot resume: task is in '${effectiveStatus}' status`,
       });
       return;
     }

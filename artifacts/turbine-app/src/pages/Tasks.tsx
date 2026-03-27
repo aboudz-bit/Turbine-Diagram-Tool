@@ -8,7 +8,8 @@ import { useLocation } from "wouter"
 
 export default function Tasks() {
   const [filter, setFilter] = React.useState('all')
-  const { data: tasks, isLoading, refetch } = useListTasks(filter !== 'all' ? { status: filter } : undefined)
+  const { data: taskResponse, isLoading, refetch } = useListTasks(filter !== 'all' ? { status: filter } : undefined)
+  const tasks = taskResponse?.data
   const [, setLocation] = useLocation()
 
   const getStatusBadge = (status: string) => {
@@ -29,6 +30,10 @@ export default function Tasks() {
         </Badge>
       case 'rejected':
         return <Badge variant="destructive" className="text-[10px] px-2 py-0.5">Rejected</Badge>
+      case 'revision_needed':
+        return <Badge variant="warning" className="text-[10px] px-2 py-0.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5 inline-block" />Revision Needed
+        </Badge>
       case 'overdue':
         return <Badge variant="destructive" className="text-[10px] px-2 py-0.5">
           <span className="w-1.5 h-1.5 rounded-full bg-red-600 mr-1.5 inline-block" />Overdue

@@ -6,10 +6,10 @@ import {
   assetStagesTable,
   assetComponentsTable,
   tasksTable,
-  usersTable,
   timeEntriesTable,
 } from "@workspace/db";
-import { eq, isNotNull } from "drizzle-orm";
+import { eq, isNotNull, inArray, sql, and } from "drizzle-orm";
+import { taskBaseQuery, applyEffectiveStatus } from "../lib/task-queries";
 
 const router: IRouter = Router();
 
@@ -90,65 +90,36 @@ router.get("/components/:componentId/history", async (req, res): Promise<void> =
       return;
     }
 
-    // Get tasks for this component
-    const tasks = await db
-      .select({
-        id: tasksTable.id,
-        title: tasksTable.title,
-        description: tasksTable.description,
-        assetId: tasksTable.assetId,
-        assetName: assetsTable.name,
-        sectionId: tasksTable.sectionId,
-        sectionName: assetSectionsTable.name,
-        stageId: tasksTable.stageId,
-        stageName: assetStagesTable.name,
-        stageNumber: assetStagesTable.stageNumber,
-        bladeCountMin: assetStagesTable.bladeCountMin,
-        bladeCountMax: assetStagesTable.bladeCountMax,
-        componentId: tasksTable.componentId,
-        componentName: assetComponentsTable.name,
-        assignedToId: tasksTable.assignedToId,
-        assignedToName: usersTable.name,
-        createdById: tasksTable.createdById,
-        estimatedHours: tasksTable.estimatedHours,
-        deadline: tasksTable.deadline,
-        priority: tasksTable.priority,
-        status: tasksTable.status,
-        createdAt: tasksTable.createdAt,
-        updatedAt: tasksTable.updatedAt,
-      })
-      .from(tasksTable)
-      .leftJoin(assetsTable, eq(tasksTable.assetId, assetsTable.id))
-      .leftJoin(assetSectionsTable, eq(tasksTable.sectionId, assetSectionsTable.id))
-      .leftJoin(assetStagesTable, eq(tasksTable.stageId, assetStagesTable.id))
-      .leftJoin(assetComponentsTable, eq(tasksTable.componentId, assetComponentsTable.id))
-      .leftJoin(usersTable, eq(tasksTable.assignedToId, usersTable.id))
+    // Get tasks for this component (using shared query builder)
+    const rawTasks = await taskBaseQuery()
       .where(eq(tasksTable.componentId, componentId))
       .orderBy(tasksTable.createdAt);
+
+    // Apply computed overdue status
+    const tasks = rawTasks.map(applyEffectiveStatus);
 
     const completedTasks = tasks.filter((t) =>
       ["approved", "submitted"].includes(t.status)
     );
 
-    // Avg repair hours from time entries on completed tasks
+    // Avg repair hours from time entries on completed tasks (SQL-level filter)
     let avgRepairHours: number | null = null;
     if (completedTasks.length > 0) {
       const completedIds = completedTasks.map((t) => t.id);
-      const allTimeEntries = await db
-        .select({ duration: timeEntriesTable.duration, taskId: timeEntriesTable.taskId })
+      const [timeAgg] = await db
+        .select({
+          totalMinutes: sql<number>`coalesce(sum(${timeEntriesTable.duration}), 0)::int`,
+        })
         .from(timeEntriesTable)
-        .where(isNotNull(timeEntriesTable.duration));
-
-      const relevantEntries = allTimeEntries.filter((e) =>
-        completedIds.includes(e.taskId)
-      );
-
-      if (relevantEntries.length > 0) {
-        const totalMin = relevantEntries.reduce(
-          (sum, e) => sum + (e.duration ?? 0),
-          0
+        .where(
+          and(
+            inArray(timeEntriesTable.taskId, completedIds),
+            isNotNull(timeEntriesTable.duration),
+          ),
         );
-        avgRepairHours = Math.round((totalMin / completedTasks.length / 60) * 10) / 10;
+
+      if (timeAgg && timeAgg.totalMinutes > 0) {
+        avgRepairHours = Math.round((timeAgg.totalMinutes / completedTasks.length / 60) * 10) / 10;
       }
     }
 

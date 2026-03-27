@@ -5,11 +5,9 @@
  * Maintenance Task & QC Management System API
  * OpenAPI spec version: 0.2.0
  */
+import type { Task } from "./task";
 
-export type ListTasksParams = {
-  status?: string;
-  assignedTo?: number;
-  sectionId?: number;
-  limit?: number;
-  offset?: number;
-};
+export interface TaskListResponse {
+  data: Task[];
+  total: number;
+}

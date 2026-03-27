@@ -8,16 +8,18 @@ import {
   timeEntriesTable,
 } from "@workspace/db";
 import { eq, sql, and, isNotNull } from "drizzle-orm";
+import { computeEffectiveStatus } from "../lib/task-utils";
 
 const router: IRouter = Router();
 
 router.get("/dashboard/stats", async (req, res) => {
   try {
-    // Total by status
-    const allTasks = await db
+    // Total by status (with computed overdue)
+    const rawTasks = await db
       .select({
         id: tasksTable.id,
         status: tasksTable.status,
+        deadline: tasksTable.deadline,
         assignedToId: tasksTable.assignedToId,
         sectionId: tasksTable.sectionId,
         stageId: tasksTable.stageId,
@@ -25,6 +27,12 @@ router.get("/dashboard/stats", async (req, res) => {
         estimatedHours: tasksTable.estimatedHours,
       })
       .from(tasksTable);
+
+    // Apply computed overdue status
+    const allTasks = rawTasks.map((t) => ({
+      ...t,
+      status: computeEffectiveStatus(t),
+    }));
 
     const byStatus: Record<string, number> = {};
     for (const task of allTasks) {
@@ -53,51 +61,49 @@ router.get("/dashboard/stats", async (req, res) => {
       .where(isNotNull(tasksTable.stageId))
       .groupBy(assetStagesTable.name);
 
-    // Technician performance
-    const technicians = await db
-      .select()
-      .from(usersTable)
-      .where(eq(usersTable.role, "technician"));
-
-    const techPerformance = await Promise.all(
-      technicians.map(async (tech) => {
-        const techTasks = allTasks.filter((t) => t.assignedToId === tech.id);
-        const completed = techTasks.filter((t) =>
-          ["approved", "submitted"].includes(t.status)
-        );
-
-        // Avg completion from time entries
-        const timeData = await db
-          .select({ duration: timeEntriesTable.duration })
-          .from(timeEntriesTable)
-          .leftJoin(tasksTable, eq(timeEntriesTable.taskId, tasksTable.id))
-          .where(
-            and(
-              eq(timeEntriesTable.userId, tech.id),
-              isNotNull(timeEntriesTable.duration)
-            )
-          );
-
-        const totalMinutes = timeData.reduce(
-          (sum, e) => sum + (e.duration ?? 0),
-          0
-        );
-        const avgHours =
-          timeData.length > 0 ? totalMinutes / timeData.length / 60 : 0;
-
-        return {
-          technicianId: tech.id,
-          technicianName: tech.name,
-          assignedTasks: techTasks.length,
-          completedTasks: completed.length,
-          avgCompletionHours: Math.round(avgHours * 10) / 10,
-        };
+    // Technician performance via SQL aggregation (single query)
+    const techStats = await db
+      .select({
+        technicianId: usersTable.id,
+        technicianName: usersTable.name,
+        assignedTasks: sql<number>`count(${tasksTable.id})::int`,
+        completedTasks: sql<number>`count(case when ${tasksTable.status} in ('approved', 'submitted') then 1 end)::int`,
       })
-    );
+      .from(usersTable)
+      .leftJoin(tasksTable, eq(tasksTable.assignedToId, usersTable.id))
+      .where(eq(usersTable.role, "technician"))
+      .groupBy(usersTable.id, usersTable.name);
+
+    // Avg completion hours via single aggregate query
+    const techTimeStats = await db
+      .select({
+        userId: timeEntriesTable.userId,
+        totalMinutes: sql<number>`coalesce(sum(${timeEntriesTable.duration}), 0)::int`,
+        entryCount: sql<number>`count(${timeEntriesTable.duration})::int`,
+      })
+      .from(timeEntriesTable)
+      .where(isNotNull(timeEntriesTable.duration))
+      .groupBy(timeEntriesTable.userId);
+
+    const timeByUser = new Map(techTimeStats.map((t) => [t.userId, t]));
+
+    const techPerformance = techStats.map((tech) => {
+      const timeData = timeByUser.get(tech.technicianId);
+      const avgHours = timeData && timeData.entryCount > 0
+        ? timeData.totalMinutes / timeData.entryCount / 60
+        : 0;
+      return {
+        technicianId: tech.technicianId,
+        technicianName: tech.technicianName,
+        assignedTasks: tech.assignedTasks,
+        completedTasks: tech.completedTasks,
+        avgCompletionHours: Math.round(avgHours * 10) / 10,
+      };
+    });
 
     const overdueCount = byStatus["overdue"] ?? 0;
     const approvedCount = byStatus["approved"] ?? 0;
-    const rejectedCount = byStatus["rejected"] ?? 0;
+    const rejectedCount = (byStatus["rejected"] ?? 0) + (byStatus["revision_needed"] ?? 0);
     const reviewedCount = approvedCount + rejectedCount;
     const approvalRate =
       reviewedCount > 0

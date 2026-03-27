@@ -8,9 +8,10 @@ const VALID_TRANSITIONS: Record<string, string[]> = {
   in_progress: ["paused", "submitted"],
   paused: ["in_progress"],
   submitted: ["under_qc"],
-  under_qc: ["approved", "rejected"],
+  under_qc: ["approved", "revision_needed"],
   approved: [], // terminal
-  rejected: ["in_progress"],
+  rejected: ["in_progress"], // legacy — kept for backward compatibility
+  revision_needed: ["in_progress"],
   overdue: ["in_progress"],
 };
 

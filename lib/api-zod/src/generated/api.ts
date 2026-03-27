@@ -145,6 +145,7 @@ export const GetComponentHistoryResponse = zod.object({
         "under_qc",
         "approved",
         "rejected",
+        "revision_needed",
         "overdue",
       ]),
       totalMinutes: zod.number().optional(),
@@ -168,49 +169,59 @@ export const ListUsersResponse = zod.array(ListUsersResponseItem);
 /**
  * @summary List all tasks
  */
+export const listTasksQueryLimitDefault = 50;
+export const listTasksQueryOffsetDefault = 0;
+
 export const ListTasksQueryParams = zod.object({
   status: zod.coerce.string().optional(),
   assignedTo: zod.coerce.number().optional(),
   sectionId: zod.coerce.number().optional(),
+  limit: zod.coerce.number().default(listTasksQueryLimitDefault),
+  offset: zod.coerce.number().default(listTasksQueryOffsetDefault),
 });
 
-export const ListTasksResponseItem = zod.object({
-  id: zod.number(),
-  title: zod.string(),
-  description: zod.string().optional(),
-  assetId: zod.number().optional(),
-  assetName: zod.string().optional(),
-  sectionId: zod.number().optional(),
-  sectionName: zod.string().optional(),
-  stageId: zod.number().optional(),
-  stageName: zod.string().optional(),
-  stageNumber: zod.number().optional(),
-  bladeCountMin: zod.number().optional(),
-  bladeCountMax: zod.number().optional(),
-  componentId: zod.number().optional(),
-  componentName: zod.string().optional(),
-  assignedToId: zod.number().optional(),
-  assignedToName: zod.string().optional(),
-  createdById: zod.number().optional(),
-  estimatedHours: zod.string().optional(),
-  deadline: zod.date().optional(),
-  priority: zod.enum(["high", "medium", "low"]),
-  status: zod.enum([
-    "draft",
-    "assigned",
-    "in_progress",
-    "paused",
-    "submitted",
-    "under_qc",
-    "approved",
-    "rejected",
-    "overdue",
-  ]),
-  totalMinutes: zod.number().optional(),
-  createdAt: zod.date(),
-  updatedAt: zod.date().optional(),
+export const ListTasksResponse = zod.object({
+  data: zod.array(
+    zod.object({
+      id: zod.number(),
+      title: zod.string(),
+      description: zod.string().optional(),
+      assetId: zod.number().optional(),
+      assetName: zod.string().optional(),
+      sectionId: zod.number().optional(),
+      sectionName: zod.string().optional(),
+      stageId: zod.number().optional(),
+      stageName: zod.string().optional(),
+      stageNumber: zod.number().optional(),
+      bladeCountMin: zod.number().optional(),
+      bladeCountMax: zod.number().optional(),
+      componentId: zod.number().optional(),
+      componentName: zod.string().optional(),
+      assignedToId: zod.number().optional(),
+      assignedToName: zod.string().optional(),
+      createdById: zod.number().optional(),
+      estimatedHours: zod.string().optional(),
+      deadline: zod.date().optional(),
+      priority: zod.enum(["high", "medium", "low"]),
+      status: zod.enum([
+        "draft",
+        "assigned",
+        "in_progress",
+        "paused",
+        "submitted",
+        "under_qc",
+        "approved",
+        "rejected",
+        "revision_needed",
+        "overdue",
+      ]),
+      totalMinutes: zod.number().optional(),
+      createdAt: zod.date(),
+      updatedAt: zod.date().optional(),
+    }),
+  ),
+  total: zod.number(),
 });
-export const ListTasksResponse = zod.array(ListTasksResponseItem);
 
 /**
  * @summary Create a new task
@@ -266,6 +277,7 @@ export const GetTaskResponse = zod
       "under_qc",
       "approved",
       "rejected",
+      "revision_needed",
       "overdue",
     ]),
     totalMinutes: zod.number().optional(),
@@ -335,6 +347,7 @@ export const UpdateTaskStatusBody = zod.object({
     "under_qc",
     "approved",
     "rejected",
+    "revision_needed",
     "overdue",
   ]),
   pauseReason: zod.string().optional(),
@@ -371,6 +384,7 @@ export const UpdateTaskStatusResponse = zod.object({
     "under_qc",
     "approved",
     "rejected",
+    "revision_needed",
     "overdue",
   ]),
   totalMinutes: zod.number().optional(),

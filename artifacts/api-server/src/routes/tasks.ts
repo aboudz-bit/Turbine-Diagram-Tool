@@ -3,14 +3,10 @@ import { db } from "@workspace/db";
 import {
   tasksTable,
   usersTable,
-  assetsTable,
-  assetSectionsTable,
-  assetStagesTable,
-  assetComponentsTable,
   timeEntriesTable,
   qcReviewsTable,
 } from "@workspace/db";
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { isValidTransition, getValidTransitions } from "../lib/state-machine";
 import { validateBody, validateQuery } from "../middleware/validate";
 import {
@@ -18,65 +14,14 @@ import {
   UpdateTaskStatusBody,
   ListTasksQueryParams,
 } from "@workspace/api-zod";
+import {
+  taskBaseQuery,
+  buildTaskRow,
+  applyEffectiveStatus,
+} from "../lib/task-queries";
+import { computeEffectiveStatus } from "../lib/task-utils";
 
 const router: IRouter = Router();
-
-async function buildTaskRow(taskId: number) {
-  const [task] = await db
-    .select({
-      id: tasksTable.id,
-      title: tasksTable.title,
-      description: tasksTable.description,
-      assetId: tasksTable.assetId,
-      assetName: assetsTable.name,
-      sectionId: tasksTable.sectionId,
-      sectionName: assetSectionsTable.name,
-      stageId: tasksTable.stageId,
-      stageName: assetStagesTable.name,
-      stageNumber: assetStagesTable.stageNumber,
-      bladeCountMin: assetStagesTable.bladeCountMin,
-      bladeCountMax: assetStagesTable.bladeCountMax,
-      componentId: tasksTable.componentId,
-      componentName: assetComponentsTable.name,
-      assignedToId: tasksTable.assignedToId,
-      assignedToName: usersTable.name,
-      createdById: tasksTable.createdById,
-      estimatedHours: tasksTable.estimatedHours,
-      deadline: tasksTable.deadline,
-      priority: tasksTable.priority,
-      status: tasksTable.status,
-      createdAt: tasksTable.createdAt,
-      updatedAt: tasksTable.updatedAt,
-    })
-    .from(tasksTable)
-    .leftJoin(assetsTable, eq(tasksTable.assetId, assetsTable.id))
-    .leftJoin(
-      assetSectionsTable,
-      eq(tasksTable.sectionId, assetSectionsTable.id),
-    )
-    .leftJoin(assetStagesTable, eq(tasksTable.stageId, assetStagesTable.id))
-    .leftJoin(
-      assetComponentsTable,
-      eq(tasksTable.componentId, assetComponentsTable.id),
-    )
-    .leftJoin(usersTable, eq(tasksTable.assignedToId, usersTable.id))
-    .where(eq(tasksTable.id, taskId));
-
-  if (!task) return null;
-
-  // Calculate total tracked minutes
-  const timeEntries = await db
-    .select()
-    .from(timeEntriesTable)
-    .where(eq(timeEntriesTable.taskId, taskId));
-
-  const totalMinutes = timeEntries.reduce(
-    (sum, e) => sum + (e.duration ?? 0),
-    0,
-  );
-
-  return { ...task, totalMinutes };
-}
 
 router.get(
   "/tasks",
@@ -84,8 +29,11 @@ router.get(
   async (req, res): Promise<void> => {
     try {
       const { status, assignedTo, sectionId } = req.query;
+      const limit = Math.min(parseInt((req.query as Record<string, string>).limit || "50", 10), 200);
+      const offset = parseInt((req.query as Record<string, string>).offset || "0", 10);
+
       const conditions = [];
-      if (status)
+      if (status && status !== "overdue")
         conditions.push(
           eq(
             tasksTable.status,
@@ -98,6 +46,7 @@ router.get(
               | "under_qc"
               | "approved"
               | "rejected"
+              | "revision_needed"
               | "overdue",
           ),
         );
@@ -110,50 +59,43 @@ router.get(
           eq(tasksTable.sectionId, parseInt(sectionId as string, 10)),
         );
 
-      const tasks = await db
-        .select({
-          id: tasksTable.id,
-          title: tasksTable.title,
-          description: tasksTable.description,
-          assetId: tasksTable.assetId,
-          assetName: assetsTable.name,
-          sectionId: tasksTable.sectionId,
-          sectionName: assetSectionsTable.name,
-          stageId: tasksTable.stageId,
-          stageName: assetStagesTable.name,
-          stageNumber: assetStagesTable.stageNumber,
-          bladeCountMin: assetStagesTable.bladeCountMin,
-          bladeCountMax: assetStagesTable.bladeCountMax,
-          componentId: tasksTable.componentId,
-          componentName: assetComponentsTable.name,
-          assignedToId: tasksTable.assignedToId,
-          assignedToName: usersTable.name,
-          createdById: tasksTable.createdById,
-          estimatedHours: tasksTable.estimatedHours,
-          deadline: tasksTable.deadline,
-          priority: tasksTable.priority,
-          status: tasksTable.status,
-          createdAt: tasksTable.createdAt,
-          updatedAt: tasksTable.updatedAt,
-        })
-        .from(tasksTable)
-        .leftJoin(assetsTable, eq(tasksTable.assetId, assetsTable.id))
-        .leftJoin(
-          assetSectionsTable,
-          eq(tasksTable.sectionId, assetSectionsTable.id),
-        )
-        .leftJoin(assetStagesTable, eq(tasksTable.stageId, assetStagesTable.id))
-        .leftJoin(
-          assetComponentsTable,
-          eq(tasksTable.componentId, assetComponentsTable.id),
-        )
-        .leftJoin(usersTable, eq(tasksTable.assignedToId, usersTable.id))
-        .where(conditions.length > 0 ? and(...conditions) : undefined)
-        .orderBy(tasksTable.createdAt);
+      const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-      // Add totalMinutes=0 for list view (performance)
-      const result = tasks.map((t) => ({ ...t, totalMinutes: 0 }));
-      res.json(result);
+      // For "overdue" filter, we need all rows since overdue is computed
+      if (status === "overdue") {
+        const allTasks = await taskBaseQuery()
+          .where(whereClause)
+          .orderBy(tasksTable.createdAt);
+
+        const overdueTasks = allTasks
+          .map((t) => ({ ...applyEffectiveStatus(t), totalMinutes: 0 }))
+          .filter((t) => t.status === "overdue");
+
+        const total = overdueTasks.length;
+        const data = overdueTasks.slice(offset, offset + limit);
+        res.json({ data, total });
+      } else {
+        // Count total matching rows
+        const [countResult] = await db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(tasksTable)
+          .where(whereClause);
+        const total = countResult?.count ?? 0;
+
+        // Fetch paginated results
+        const tasks = await taskBaseQuery()
+          .where(whereClause)
+          .orderBy(tasksTable.createdAt)
+          .limit(limit)
+          .offset(offset);
+
+        const data = tasks.map((t) => ({
+          ...applyEffectiveStatus(t),
+          totalMinutes: 0,
+        }));
+
+        res.json({ data, total });
+      }
     } catch (err) {
       req.log.error({ err }, "Failed to list tasks");
       res.status(500).json({ error: "Internal server error" });
@@ -277,7 +219,7 @@ router.patch(
   async (req, res): Promise<void> => {
     try {
       const taskId = parseInt(req.params.taskId as string, 10);
-      const status = req.body.status as "draft" | "assigned" | "in_progress" | "paused" | "submitted" | "under_qc" | "approved" | "rejected" | "overdue";
+      const status = req.body.status as "draft" | "assigned" | "in_progress" | "paused" | "submitted" | "under_qc" | "approved" | "rejected" | "revision_needed" | "overdue";
 
       const [existing] = await db
         .select()
@@ -294,11 +236,14 @@ router.patch(
         return;
       }
 
+      // Use effective status (computed overdue) for transition validation
+      const effectiveStatus = computeEffectiveStatus(existing);
+
       // Enforce state machine
-      if (!isValidTransition(existing.status, status)) {
+      if (!isValidTransition(effectiveStatus, status)) {
         res.status(400).json({
-          error: `Invalid status transition from '${existing.status}' to '${status}'`,
-          validTransitions: getValidTransitions(existing.status),
+          error: `Invalid status transition from '${effectiveStatus}' to '${status}'`,
+          validTransitions: getValidTransitions(effectiveStatus),
         });
         return;
       }

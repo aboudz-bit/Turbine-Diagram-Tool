@@ -24,8 +24,9 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
   submitted:  { label: 'Submitted',   color: 'text-purple-700',  bg: 'bg-purple-50',  border: 'border-purple-300' },
   under_qc:   { label: 'Under QC',    color: 'text-purple-700',  bg: 'bg-purple-50',  border: 'border-purple-300' },
   approved:   { label: 'Approved',    color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-300' },
-  rejected:   { label: 'Rejected',    color: 'text-red-700',     bg: 'bg-red-50',     border: 'border-red-300' },
-  overdue:    { label: 'Overdue',     color: 'text-red-700',     bg: 'bg-red-100',    border: 'border-red-400' },
+  rejected:         { label: 'Rejected',         color: 'text-red-700',     bg: 'bg-red-50',     border: 'border-red-300' },
+  revision_needed:  { label: 'Revision Needed', color: 'text-amber-700',   bg: 'bg-amber-50',  border: 'border-amber-300' },
+  overdue:          { label: 'Overdue',          color: 'text-red-700',     bg: 'bg-red-100',    border: 'border-red-400' },
 }
 
 const PRIORITY_COLORS = {

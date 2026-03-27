@@ -79,7 +79,7 @@ router.post(
           })
           .returning();
 
-        const newStatus = decision === "approved" ? "approved" : "rejected";
+        const newStatus = decision === "approved" ? "approved" as const : "revision_needed" as const;
         const now = new Date();
         await tx
           .update(tasksTable)
