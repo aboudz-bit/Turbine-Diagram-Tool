@@ -1,4 +1,6 @@
 import { Router, type IRouter } from "express";
+import { requireAuth } from "../middleware/auth";
+import authRouter from "./auth";
 import healthRouter from "./health";
 import assetsRouter from "./assets";
 import tasksRouter from "./tasks";
@@ -8,7 +10,12 @@ import dashboardRouter from "./dashboard";
 
 const router: IRouter = Router();
 
+// Public routes (no auth required)
 router.use(healthRouter);
+router.use(authRouter);
+
+// Protected routes (auth required)
+router.use(requireAuth);
 router.use(assetsRouter);
 router.use(tasksRouter);
 router.use(timeRouter);

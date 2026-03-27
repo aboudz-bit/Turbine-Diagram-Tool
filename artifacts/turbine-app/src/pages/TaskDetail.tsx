@@ -70,7 +70,7 @@ export default function TaskDetail() {
   const priorityColor = PRIORITY_COLORS[task.priority as keyof typeof PRIORITY_COLORS] || 'bg-slate-400'
 
   const handleStart = async () => {
-    await startMutation.mutateAsync({ taskId, data: { userId: 1 } })
+    await startMutation.mutateAsync({ taskId, data: {} })
     refetch()
   }
   const handlePause = async () => {
@@ -81,7 +81,7 @@ export default function TaskDetail() {
     refetch()
   }
   const handleResume = async () => {
-    await resumeMutation.mutateAsync({ taskId, data: { userId: 1 } })
+    await resumeMutation.mutateAsync({ taskId })
     refetch()
   }
   const handleSubmitForQc = async () => {
@@ -89,7 +89,7 @@ export default function TaskDetail() {
   }
   const handleQcSubmit = async (decision: 'approved' | 'rejected') => {
     if (decision === 'rejected' && !qcComment) return
-    await qcMutation.mutateAsync({ taskId, data: { decision, comments: qcComment, reviewerId: 1 } })
+    await qcMutation.mutateAsync({ taskId, data: { decision, comments: qcComment } })
     refetch()
   }
 

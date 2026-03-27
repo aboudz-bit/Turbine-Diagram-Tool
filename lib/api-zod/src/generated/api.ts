@@ -8,6 +8,33 @@
 import * as zod from "zod";
 
 /**
+ * @summary Login by selecting a user (dev mode)
+ */
+export const LoginBody = zod.object({
+  userId: zod.number(),
+});
+
+export const LoginResponse = zod.object({
+  token: zod.string(),
+  user: zod.object({
+    id: zod.number(),
+    name: zod.string(),
+    email: zod.string(),
+    role: zod.enum(["engineer", "supervisor", "site_manager", "technician"]),
+  }),
+});
+
+/**
+ * @summary Get current authenticated user
+ */
+export const GetMeResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  email: zod.string(),
+  role: zod.enum(["engineer", "supervisor", "site_manager", "technician"]),
+});
+
+/**
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
@@ -378,9 +405,7 @@ export const StartTimeTrackingParams = zod.object({
   taskId: zod.coerce.number(),
 });
 
-export const StartTimeTrackingBody = zod.object({
-  userId: zod.number(),
-});
+export const StartTimeTrackingBody = zod.object({}).passthrough();
 
 /**
  * @summary Pause active time tracking (requires reason)
@@ -440,7 +465,6 @@ export const SubmitQcReviewParams = zod.object({
 export const SubmitQcReviewBody = zod.object({
   decision: zod.enum(["approved", "rejected"]),
   comments: zod.string().optional(),
-  reviewerId: zod.number(),
 });
 
 /**

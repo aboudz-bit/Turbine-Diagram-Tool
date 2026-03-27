@@ -5,6 +5,31 @@
  * Maintenance Task & QC Management System API
  * OpenAPI spec version: 0.2.0
  */
+export interface LoginInput {
+  userId: number;
+}
+
+export type UserRole = (typeof UserRole)[keyof typeof UserRole];
+
+export const UserRole = {
+  engineer: "engineer",
+  supervisor: "supervisor",
+  site_manager: "site_manager",
+  technician: "technician",
+} as const;
+
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: UserRole;
+}
+
+export interface LoginResult {
+  token: string;
+  user: User;
+}
+
 export interface HealthStatus {
   status: string;
 }
@@ -97,22 +122,6 @@ export interface ComponentHistory {
   avgRepairHours?: number;
   lastMaintenanceDate?: string;
   tasks: Task[];
-}
-
-export type UserRole = (typeof UserRole)[keyof typeof UserRole];
-
-export const UserRole = {
-  engineer: "engineer",
-  supervisor: "supervisor",
-  site_manager: "site_manager",
-  technician: "technician",
-} as const;
-
-export interface User {
-  id: number;
-  name: string;
-  email: string;
-  role: UserRole;
 }
 
 export interface TimeEntry {
@@ -225,7 +234,7 @@ export interface UpdateTaskStatusInput {
 }
 
 export interface StartTimeInput {
-  userId: number;
+  [key: string]: unknown;
 }
 
 export interface PauseTimeInput {
@@ -243,7 +252,6 @@ export const QcReviewInputDecision = {
 export interface QcReviewInput {
   decision: QcReviewInputDecision;
   comments?: string;
-  reviewerId: number;
 }
 
 export type ListTasksParams = {

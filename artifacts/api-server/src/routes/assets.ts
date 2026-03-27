@@ -25,7 +25,7 @@ router.get("/assets", async (req, res) => {
 
 router.get("/assets/:assetId/sections", async (req, res) => {
   try {
-    const assetId = parseInt(req.params.assetId, 10);
+    const assetId = parseInt(req.params.assetId as string, 10);
     const sections = await db
       .select()
       .from(assetSectionsTable)
@@ -40,7 +40,7 @@ router.get("/assets/:assetId/sections", async (req, res) => {
 
 router.get("/sections/:sectionId/stages", async (req, res) => {
   try {
-    const sectionId = parseInt(req.params.sectionId, 10);
+    const sectionId = parseInt(req.params.sectionId as string, 10);
     const stages = await db
       .select()
       .from(assetStagesTable)
@@ -55,7 +55,7 @@ router.get("/sections/:sectionId/stages", async (req, res) => {
 
 router.get("/stages/:stageId/components", async (req, res) => {
   try {
-    const stageId = parseInt(req.params.stageId, 10);
+    const stageId = parseInt(req.params.stageId as string, 10);
     const components = await db
       .select()
       .from(assetComponentsTable)
@@ -67,9 +67,9 @@ router.get("/stages/:stageId/components", async (req, res) => {
   }
 });
 
-router.get("/components/:componentId/history", async (req, res) => {
+router.get("/components/:componentId/history", async (req, res): Promise<void> => {
   try {
-    const componentId = parseInt(req.params.componentId, 10);
+    const componentId = parseInt(req.params.componentId as string, 10);
 
     // Get component info
     const [component] = await db
@@ -86,7 +86,8 @@ router.get("/components/:componentId/history", async (req, res) => {
       .where(eq(assetComponentsTable.id, componentId));
 
     if (!component) {
-      return res.status(404).json({ error: "Component not found" });
+      res.status(404).json({ error: "Component not found" });
+      return;
     }
 
     // Get tasks for this component

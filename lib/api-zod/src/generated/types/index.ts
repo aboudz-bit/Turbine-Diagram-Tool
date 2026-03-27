@@ -20,6 +20,8 @@ export * from "./dashboardStatsByStatus";
 export * from "./dashboardStatsTechnicianPerformanceItem";
 export * from "./healthStatus";
 export * from "./listTasksParams";
+export * from "./loginInput";
+export * from "./loginResult";
 export * from "./pauseTimeInput";
 export * from "./qcReview";
 export * from "./qcReviewDecision";

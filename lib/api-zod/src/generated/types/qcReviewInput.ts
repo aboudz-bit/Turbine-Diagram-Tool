@@ -10,5 +10,4 @@ import type { QcReviewInputDecision } from "./qcReviewInputDecision";
 export interface QcReviewInput {
   decision: QcReviewInputDecision;
   comments?: string;
-  reviewerId: number;
 }
