@@ -41,14 +41,14 @@ export default function AssetHistory() {
   })
 
   const [activeStageId, setActiveStageId] = React.useState<number | null>(null)
+  // Always auto-select first stage whenever stages data changes (handles initial load AND section tab changes)
   React.useEffect(() => {
-    if (stages?.length && !activeStageId) setActiveStageId(stages[0].id)
-    if (!stages?.length) setActiveStageId(null)
+    if (stages && stages.length > 0) {
+      setActiveStageId(stages[0].id)
+    } else if (stages && stages.length === 0) {
+      setActiveStageId(null)
+    }
   }, [stages])
-
-  React.useEffect(() => {
-    setActiveStageId(null)
-  }, [activeSectionId])
 
   const { data: components } = useListComponents(activeStageId ?? 0, {
     query: { enabled: !!activeStageId }
@@ -117,13 +117,12 @@ export default function AssetHistory() {
       )}
 
       {/* ── COMPONENT GRID ── */}
-      {!activeStageId && !stages?.length ? (
-        <div className="text-sm text-muted-foreground text-center py-12 border border-white/5 border-dashed rounded-xl">
-          No stage data for this section
-        </div>
-      ) : !activeStageId ? (
-        <div className="text-sm text-muted-foreground text-center py-12 border border-white/5 border-dashed rounded-xl">
-          Select a stage above to view components
+      {!activeStageId ? (
+        // Loading skeleton — shown while stages/components are auto-loading
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="h-44 rounded-xl bg-card/40 animate-pulse border border-white/5" />
+          ))}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">

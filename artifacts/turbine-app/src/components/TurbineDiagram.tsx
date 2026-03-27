@@ -47,11 +47,11 @@ export const TURBINE_SECTIONS = [
     name: 'Compressor',
     x1: 0, x2: 380,
     b1: BOUNDARIES[0], b2: BOUNDARIES[1],
-    baseColor: 'rgba(56,189,248,0.18)',
-    hoverColor: 'rgba(56,189,248,0.38)',
-    activeColor: 'rgba(56,189,248,0.55)',
+    baseColor: 'rgba(56,189,248,0.14)',
+    hoverColor: 'rgba(56,189,248,0.32)',
+    activeColor: 'rgba(56,189,248,0.72)',
     stroke: '#38bdf8',
-    glowColor: 'rgba(56,189,248,0.3)',
+    glowColor: 'rgba(56,189,248,0.5)',
     labelText: 'Compressor',
   },
   {
@@ -59,11 +59,11 @@ export const TURBINE_SECTIONS = [
     name: 'Mid Frame',
     x1: 380, x2: 545,
     b1: BOUNDARIES[1], b2: BOUNDARIES[2],
-    baseColor: 'rgba(245,158,11,0.18)',
-    hoverColor: 'rgba(245,158,11,0.38)',
-    activeColor: 'rgba(245,158,11,0.55)',
+    baseColor: 'rgba(245,158,11,0.14)',
+    hoverColor: 'rgba(245,158,11,0.32)',
+    activeColor: 'rgba(245,158,11,0.72)',
     stroke: '#f59e0b',
-    glowColor: 'rgba(245,158,11,0.3)',
+    glowColor: 'rgba(245,158,11,0.5)',
     labelText: 'Mid Frame',
   },
   {
@@ -71,11 +71,11 @@ export const TURBINE_SECTIONS = [
     name: 'Turbine',
     x1: 545, x2: 760,
     b1: BOUNDARIES[2], b2: BOUNDARIES[3],
-    baseColor: 'rgba(52,211,153,0.18)',
-    hoverColor: 'rgba(52,211,153,0.38)',
-    activeColor: 'rgba(52,211,153,0.55)',
+    baseColor: 'rgba(52,211,153,0.14)',
+    hoverColor: 'rgba(52,211,153,0.32)',
+    activeColor: 'rgba(52,211,153,0.72)',
     stroke: '#34d399',
-    glowColor: 'rgba(52,211,153,0.3)',
+    glowColor: 'rgba(52,211,153,0.5)',
     labelText: 'Turbine',
   },
   {
@@ -83,11 +83,11 @@ export const TURBINE_SECTIONS = [
     name: 'Exit Cylinder',
     x1: 760, x2: 960,
     b1: BOUNDARIES[3], b2: BOUNDARIES[4],
-    baseColor: 'rgba(167,139,250,0.18)',
-    hoverColor: 'rgba(167,139,250,0.38)',
-    activeColor: 'rgba(167,139,250,0.55)',
+    baseColor: 'rgba(167,139,250,0.14)',
+    hoverColor: 'rgba(167,139,250,0.32)',
+    activeColor: 'rgba(167,139,250,0.72)',
     stroke: '#a78bfa',
-    glowColor: 'rgba(167,139,250,0.3)',
+    glowColor: 'rgba(167,139,250,0.5)',
     labelText: 'Exit Cylinder',
   },
 ]
@@ -187,21 +187,40 @@ export function TurbineDiagram({ selectedSectionId, onSelectSection, interactive
           const isHovered = hoveredSection === s.id && interactive
           const cx = (s.x1 + s.x2) / 2
           const connY = labelConnectorY(s)
-          const labelColor = isActive ? s.stroke : isHovered ? s.stroke : 'rgba(255,255,255,0.4)'
+          const labelColor = isActive ? s.stroke : isHovered ? s.stroke : 'rgba(255,255,255,0.35)'
+          const fontSize = isActive ? 12 : 10.5
           return (
             <g key={`lbl-${s.id}`} pointerEvents="none">
-              <line x1={cx} y1={26} x2={cx} y2={connY}
-                stroke={labelColor} strokeWidth="1" strokeDasharray="3 2"
+              {/* Active: bright pill background behind label */}
+              {isActive && (
+                <rect x={cx - 48} y={5} width={96} height={19} rx={4}
+                  fill={s.stroke} opacity="0.18" />
+              )}
+              {/* Connector line */}
+              <line x1={cx} y1={26} x2={cx} y2={connY - 2}
+                stroke={labelColor}
+                strokeWidth={isActive ? 1.5 : 1}
+                strokeDasharray={isActive ? "none" : "3 2"}
+                opacity={isActive ? 0.9 : 0.7}
                 style={{ transition: 'stroke 0.2s' }} />
+              {/* Label text */}
               <text x={cx} y={18} textAnchor="middle"
                 fill={labelColor}
-                fontSize="10.5" fontWeight={isActive ? '700' : '500'}
-                fontFamily="'Barlow','Inter',sans-serif" letterSpacing="0.06em"
-                style={{ transition: 'fill 0.2s', textTransform: 'uppercase' }}>
+                fontSize={fontSize}
+                fontWeight={isActive ? '800' : '500'}
+                fontFamily="'Barlow','Inter',sans-serif"
+                letterSpacing="0.07em"
+                style={{ transition: 'fill 0.2s, font-size 0.15s', textTransform: 'uppercase' }}>
                 {s.labelText}
               </text>
+              {/* Active: solid dot at junction */}
               {isActive && (
-                <circle cx={cx} cy={connY + 4} r="2.5" fill={s.stroke} opacity="0.9" />
+                <circle cx={cx} cy={connY - 2} r="3" fill={s.stroke} opacity="1" />
+              )}
+              {/* Active: selection chevron indicator above label */}
+              {isActive && (
+                <polygon points={`${cx - 5},3 ${cx + 5},3 ${cx},8`}
+                  fill={s.stroke} opacity="0.9" />
               )}
             </g>
           )
@@ -218,19 +237,28 @@ export function TurbineDiagram({ selectedSectionId, onSelectSection, interactive
               onMouseEnter={() => interactive && setHoveredSection(s.id)}
               onMouseLeave={() => interactive && setHoveredSection(null)}
               style={{ cursor: interactive ? 'pointer' : 'default' }}>
-              {/* Glow polygon behind (active only) */}
+              {/* Outer diffuse glow (active only) */}
               {isActive && (
                 <polygon points={sectionPoly(s)}
-                  fill={s.glowColor} stroke={s.stroke} strokeWidth="8"
-                  strokeLinejoin="round" opacity="0.25"
-                  style={{ filter: 'blur(6px)' }} />
+                  fill={s.glowColor} stroke={s.stroke} strokeWidth="12"
+                  strokeLinejoin="round" opacity="0.35"
+                  style={{ filter: 'blur(8px)' }} />
               )}
+              {/* Section fill */}
               <polygon points={sectionPoly(s)}
                 fill={fill}
-                stroke={isActive ? s.stroke : isHovered ? s.stroke : 'rgba(255,255,255,0.2)'}
-                strokeWidth={isActive ? 2 : 1}
+                stroke={isActive ? s.stroke : isHovered ? s.stroke : 'rgba(255,255,255,0.15)'}
+                strokeWidth={isActive ? 3 : isHovered ? 2 : 1}
                 strokeLinejoin="round"
-                style={{ transition: 'fill 0.18s, stroke 0.18s' }} />
+                style={{ transition: 'fill 0.15s, stroke 0.15s, stroke-width 0.15s' }} />
+              {/* Active: bright inner border inset */}
+              {isActive && (
+                <polygon points={sectionPoly(s)}
+                  fill="none"
+                  stroke="rgba(255,255,255,0.35)"
+                  strokeWidth="1.5"
+                  strokeLinejoin="round" />
+              )}
             </g>
           )
         })}
@@ -367,13 +395,23 @@ export function TurbineDiagram({ selectedSectionId, onSelectSection, interactive
         {TURBINE_SECTIONS.map(s => {
           if (selectedSectionId !== s.id) return null
           const cx = (s.x1 + s.x2) / 2
+          const { yTop, yBot } = getYAtX(cx)
+          const cy = (yTop + yBot) / 2
           return (
             <g key={`pulse-${s.id}`} pointerEvents="none">
-              <circle cx={cx} cy={SHAFT_CY} r="6" fill={s.stroke} opacity="0.8">
-                <animate attributeName="r" values="6;10;6" dur="2s" repeatCount="indefinite" />
-                <animate attributeName="opacity" values="0.8;0.2;0.8" dur="2s" repeatCount="indefinite" />
+              {/* Outer slow ring */}
+              <circle cx={cx} cy={cy} r="14" fill="none" stroke={s.stroke} strokeWidth="1.5" opacity="0.35">
+                <animate attributeName="r" values="14;22;14" dur="2.8s" repeatCount="indefinite" />
+                <animate attributeName="opacity" values="0.35;0;0.35" dur="2.8s" repeatCount="indefinite" />
               </circle>
-              <circle cx={cx} cy={SHAFT_CY} r="3" fill={s.stroke} />
+              {/* Inner faster ring */}
+              <circle cx={cx} cy={cy} r="8" fill="none" stroke={s.stroke} strokeWidth="2" opacity="0.6">
+                <animate attributeName="r" values="8;14;8" dur="2s" repeatCount="indefinite" />
+                <animate attributeName="opacity" values="0.6;0.1;0.6" dur="2s" repeatCount="indefinite" />
+              </circle>
+              {/* Core dot */}
+              <circle cx={cx} cy={cy} r="4" fill={s.stroke} opacity="0.95" />
+              <circle cx={cx} cy={cy} r="2" fill="white" opacity="0.8" />
             </g>
           )
         })}
