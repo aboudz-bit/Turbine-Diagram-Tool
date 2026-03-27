@@ -6,6 +6,8 @@ import {
   cleanupTestData,
   closePool,
   authHeader,
+  insertTechSignature,
+  insertSupSignature,
   TEST_ENGINEER,
   TEST_SUPERVISOR,
   TEST_TECHNICIAN,
@@ -31,6 +33,7 @@ describe("QC Review API", () => {
   const supAuth = () => authHeader(TEST_SUPERVISOR);
   const techAuth = () => authHeader(TEST_TECHNICIAN);
 
+  /** Creates a task and advances it to under_qc, inserting required signatures. */
   async function createSubmittedTask(): Promise<number> {
     const createRes = await request(app)
       .post("/api/tasks")
@@ -44,17 +47,22 @@ describe("QC Review API", () => {
       });
     const taskId = createRes.body.id;
 
-    // assigned → in_progress → submitted → under_qc (with version tracking)
+    // assigned → in_progress
     await request(app)
       .patch(`/api/tasks/${taskId}`)
       .set("Authorization", engAuth())
       .send({ status: "in_progress", version: 1 });
 
+    // Add technician signature before submit
+    await insertTechSignature(taskId);
+
+    // in_progress → submitted
     await request(app)
       .patch(`/api/tasks/${taskId}`)
       .set("Authorization", engAuth())
       .send({ status: "submitted", version: 2 });
 
+    // submitted → under_qc
     await request(app)
       .patch(`/api/tasks/${taskId}`)
       .set("Authorization", engAuth())
@@ -63,9 +71,16 @@ describe("QC Review API", () => {
     return taskId;
   }
 
+  /** Creates a submitted task then adds a supervisor signature (ready to approve). */
+  async function createApprovalReadyTask(): Promise<number> {
+    const taskId = await createSubmittedTask();
+    await insertSupSignature(taskId);
+    return taskId;
+  }
+
   describe("POST /api/tasks/:taskId/qc", () => {
     it("should approve a task under QC", async () => {
-      const taskId = await createSubmittedTask();
+      const taskId = await createApprovalReadyTask();
 
       const res = await request(app)
         .post(`/api/tasks/${taskId}/qc`)
@@ -117,7 +132,6 @@ describe("QC Review API", () => {
     });
 
     it("should reject QC review on non-reviewable task", async () => {
-      // Create a draft task (not submitted/under_qc)
       const createRes = await request(app)
         .post("/api/tasks")
         .set("Authorization", engAuth())
@@ -136,11 +150,36 @@ describe("QC Review API", () => {
       expect(res.status).toBe(400);
       expect(res.body.error).toContain("Cannot review");
     });
+
+    it("should reject approve without supervisor signature → 400", async () => {
+      const taskId = await createSubmittedTask();
+      // No supervisor signature inserted
+
+      const res = await request(app)
+        .post(`/api/tasks/${taskId}/qc`)
+        .set("Authorization", supAuth())
+        .send({ decision: "approved" });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toContain("signature required");
+    });
+
+    it("should reject QC by technician → 403", async () => {
+      const taskId = await createSubmittedTask();
+      await insertSupSignature(taskId);
+
+      const res = await request(app)
+        .post(`/api/tasks/${taskId}/qc`)
+        .set("Authorization", techAuth())
+        .send({ decision: "approved" });
+
+      expect(res.status).toBe(403);
+    });
   });
 
   describe("GET /api/tasks/:taskId/qc", () => {
     it("should list QC reviews for a task", async () => {
-      const taskId = await createSubmittedTask();
+      const taskId = await createApprovalReadyTask();
 
       await request(app)
         .post(`/api/tasks/${taskId}/qc`)
@@ -162,20 +201,22 @@ describe("QC Review API", () => {
     it("should allow re-submission after revision_needed", async () => {
       const taskId = await createSubmittedTask();
 
-      // Reject
+      // Reject (no supervisor sig needed for reject)
       await request(app)
         .post(`/api/tasks/${taskId}/qc`)
         .set("Authorization", supAuth())
         .send({ decision: "rejected", comments: "Needs rework" });
 
-      // revision_needed → in_progress (version 4 after QC changes status without version bump)
-      // QC review uses its own transaction, not PATCH, so version stays at 4
+      // revision_needed → in_progress (version 4)
       const resumeRes = await request(app)
         .patch(`/api/tasks/${taskId}`)
         .set("Authorization", engAuth())
         .send({ status: "in_progress", version: 4 });
       expect(resumeRes.status).toBe(200);
       expect(resumeRes.body.status).toBe("in_progress");
+
+      // Add fresh tech signature for resubmit
+      await insertTechSignature(taskId);
 
       // in_progress → submitted (version 5)
       const submitRes = await request(app)

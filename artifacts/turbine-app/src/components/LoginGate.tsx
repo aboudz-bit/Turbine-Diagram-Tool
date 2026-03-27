@@ -7,6 +7,15 @@ import { Activity, ChevronRight, RefreshCw, AlertCircle } from "lucide-react";
 export function LoginGate({ children }: { children: React.ReactNode }) {
   const { user, login, isLoading: authLoading } = useAuth();
 
+  // Dev-only: ?devUser=N auto-logs in (or switches user) for screenshot validation
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const devUserId = params.get("devUser");
+    if (devUserId && !authLoading && user?.id !== Number(devUserId)) {
+      login(Number(devUserId)).catch(() => {});
+    }
+  }, [authLoading, user, login]);
+
   const {
     data: users,
     isLoading: usersLoading,

@@ -25,7 +25,9 @@ async function fetchNotifications(): Promise<RawNotification[]> {
 }
 
 export function NotificationBell() {
-  const [open, setOpen] = React.useState(false)
+  const [open, setOpen] = React.useState(() =>
+    new URLSearchParams(window.location.search).has("notifOpen")
+  )
   const panelRef = React.useRef<HTMLDivElement>(null)
   const bellRef = React.useRef<HTMLButtonElement>(null)
 

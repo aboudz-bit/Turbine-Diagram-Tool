@@ -6,6 +6,8 @@ import {
   cleanupTestData,
   closePool,
   authHeader,
+  insertTechSignature,
+  insertSupSignature,
   TEST_ENGINEER,
   TEST_TECHNICIAN,
   getAssetId,
@@ -247,6 +249,9 @@ describe("Tasks API", () => {
         .set("Authorization", auth())
         .send({ status: "in_progress", version: 1 });
 
+      // Add technician signature before submit
+      await insertTechSignature(taskId);
+
       // in_progress → submitted (version 2 → 3)
       await request(app)
         .patch(`/api/tasks/${taskId}`)
@@ -258,6 +263,9 @@ describe("Tasks API", () => {
         .patch(`/api/tasks/${taskId}`)
         .set("Authorization", auth())
         .send({ status: "under_qc", version: 3 });
+
+      // Add supervisor signature before approve
+      await insertSupSignature(taskId);
 
       // under_qc → approved via QC review (bypasses version check)
       await request(app)

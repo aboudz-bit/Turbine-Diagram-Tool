@@ -52,6 +52,24 @@ router.post(
         return;
       }
 
+      // Fetch task first — status must be valid before signature check
+      const [task] = await db
+        .select()
+        .from(tasksTable)
+        .where(eq(tasksTable.id, taskId));
+
+      if (!task) {
+        res.status(404).json({ error: "Task not found" });
+        return;
+      }
+
+      if (!["submitted", "under_qc"].includes(task.status)) {
+        res.status(400).json({
+          error: `Cannot review: task is in '${task.status}' status. Must be 'submitted' or 'under_qc'.`,
+        });
+        return;
+      }
+
       // Require supervisor QC approval signature before approving
       if (decision === "approved") {
         const [qcSig] = await db
@@ -69,23 +87,6 @@ router.post(
           });
           return;
         }
-      }
-
-      const [task] = await db
-        .select()
-        .from(tasksTable)
-        .where(eq(tasksTable.id, taskId));
-
-      if (!task) {
-        res.status(404).json({ error: "Task not found" });
-        return;
-      }
-
-      if (!["submitted", "under_qc"].includes(task.status)) {
-        res.status(400).json({
-          error: `Cannot review: task is in '${task.status}' status. Must be 'submitted' or 'under_qc'.`,
-        });
-        return;
       }
 
       const review = await db.transaction(async (tx) => {

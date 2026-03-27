@@ -51,8 +51,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false;
 
     async function bootstrap() {
-      const savedToken = localStorage.getItem(TOKEN_KEY);
-      const savedUser = localStorage.getItem(USER_KEY);
+      // Dev-only: ?devUser=N forces a switch to that user ID for screenshot validation
+      const urlDevUser = new URLSearchParams(window.location.search).get("devUser");
+
+      let savedToken = localStorage.getItem(TOKEN_KEY);
+      let savedUser = localStorage.getItem(USER_KEY);
+
+      if (urlDevUser) {
+        const storedUser = savedUser ? JSON.parse(savedUser) : null;
+        if (!storedUser || storedUser.id !== Number(urlDevUser)) {
+          // Clear existing session and re-login as the requested user
+          clearStorage();
+          savedToken = null;
+          savedUser = null;
+          try {
+            const res = await fetch("/api/auth/login", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ userId: Number(urlDevUser) }),
+            });
+            if (res.ok) {
+              const data: { token: string; user: AuthUser } = await res.json();
+              localStorage.setItem(TOKEN_KEY, data.token);
+              localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+              savedToken = data.token;
+            }
+          } catch {
+            // Ignore — fall through to normal login screen
+          }
+        }
+      }
 
       // Register the token getter immediately so API calls have auth headers
       setAuthTokenGetter(() => localStorage.getItem(TOKEN_KEY));
