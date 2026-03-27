@@ -48,7 +48,7 @@ artifacts-monorepo/
 - **Time Tracking**: Start/pause/resume time entries per task with elapsed time display in table format
 - **QC Review Flow**: Approve/reject with mandatory comments for rejection; approved tasks show locked read-only state
 - **Multi-step Create Task (turbine-type-aware)**: Turbine model selector (SGT-9000HL / SGT-8000H) → diagram click → stage/component flow. Model-aware section name resolution (e.g. "Combustion Chamber" for SGT-8000H vs "Mid Frame" for SGT-9000HL). Animated guided panel with sub-steps. Live breadcrumb.
-- **OEM Template Library**: `src/lib/turbineTemplates.ts` — 8 realistic inspection templates (TBC inspection, seal clearance, borescope, combustor, compressor fouling, exhaust) with checklists, measurements, tolerances, and risk levels. Template picker in step 2 auto-fills task title + description.
+- **OEM Template Library**: `src/lib/turbineTemplates.ts` — 9 realistic inspection templates across both models (TBC inspection, seal clearance, borescope, combustor, compressor fouling, exhaust, blade erosion, combustor liner, inter-stage seal) with checklists, measurements, tolerances, OEM refs, and risk levels. Template picker in step 2 auto-fills task title + description.
 - **Turbine-Aware QC Rules**: `src/lib/qcRules.ts` — per-model per-section QC rules with mandatory/recommended classification, OEM procedure references (SI-2241-HL, SA-4410, etc.), and critical zone flagging. Shown as collapsible panel in both CreateTask (step 2) and TaskDetail.
 - **Critical Zone Detection**: SGT-9000HL Turbine section is marked CRITICAL — red banner + engineer sign-off warning. SGT-8000H shows amber warnings.
 - **Assets**: Two turbine assets in DB — SGT-9000HL Unit 1 (id=1, 4 sections, 5 stages) + SGT-8000H Unit 1 (id=34, 4 sections, 4 stages, 3 turbine stages)
@@ -83,8 +83,13 @@ artifacts-monorepo/
 ### Seed Data
 Run: `pnpm --filter @workspace/scripts run seed`
 - 5 demo users (2 engineers, 3 technicians) — default userId=1 (Admin User/Site Manager)
-- 1 SGT-9000HL asset with all sections, stages, and components
-- 5 sample tasks at various status stages
+- SGT-9000HL Unit 1 (id=1): 4 sections, 4 turbine stages, all components
+- SGT-8000H Unit 1 (id=34): 4 sections, 3 turbine stages (30–52 blades each)
+- 5 sample tasks at various lifecycle stages (in_progress, assigned, overdue, submitted, approved)
+
+### Database Notes
+- `tasks.version` column was added via ALTER TABLE (not in original seed migration). Already in Drizzle schema (`lib/db/src/schema/tasks.ts`). Used for optimistic locking.
+- Both assets are seeded independently of the seed script (SGT-8000H was added via direct SQL insert).
 
 ### API Routes (v0.2)
 - `GET /api/assets` — list assets
