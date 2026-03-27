@@ -15,6 +15,7 @@ import {
 } from "@workspace/api-client-react"
 import { TurbineDiagram, SECTION_SLUG_MAP, type TurbineSectionID } from "@/components/TurbineDiagram"
 import { Card, Button, Input, Label, Textarea, Badge, Select } from "@/components/ui/core"
+import { useToast } from "@/hooks/use-toast"
 
 const SECTION_META: Record<TurbineSectionID, { icon: React.ElementType; color: string; borderColor: string; bgColor: string; desc: string }> = {
   'compressor': {
@@ -51,6 +52,7 @@ export default function CreateTask() {
   const [, setLocation] = useLocation()
   const searchStr = useSearch()
   const searchParams = React.useMemo(() => new URLSearchParams(searchStr), [searchStr])
+  const { toast } = useToast()
 
   const { data: users } = useListUsers()
   const { data: assets } = useListAssets()
@@ -112,25 +114,36 @@ export default function CreateTask() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!defaultAsset || !selectedDbSection) return
+    if (!defaultAsset || !selectedDbSection) {
+      toast({ title: "Missing location", description: "Please select a section on the diagram first.", variant: "destructive" })
+      return
+    }
+
+    const payload = {
+      title: formData.title,
+      description: formData.description || undefined,
+      priority: formData.priority,
+      assetId: defaultAsset.id,
+      sectionId: selectedDbSection.id,
+      stageId: selectedStageId || undefined,
+      componentId: selectedComponentId || undefined,
+      assignedToId: formData.assignedToId ? parseInt(formData.assignedToId) : undefined,
+      estimatedHours: formData.estimatedHours ? parseFloat(formData.estimatedHours) : undefined,
+      deadline: formData.deadline ? new Date(formData.deadline).toISOString() : undefined,
+    }
+
+    console.log("Submitting task", payload)
+
     try {
-      await createTaskMutation.mutateAsync({
-        data: {
-          title: formData.title,
-          description: formData.description || undefined,
-          priority: formData.priority,
-          assetId: defaultAsset.id,
-          sectionId: selectedDbSection.id,
-          stageId: selectedStageId || undefined,
-          componentId: selectedComponentId || undefined,
-          assignedToId: formData.assignedToId ? parseInt(formData.assignedToId) : undefined,
-          estimatedHours: formData.estimatedHours ? parseFloat(formData.estimatedHours) : undefined,
-          deadline: formData.deadline ? new Date(formData.deadline).toISOString() : undefined,
-        }
-      })
+      const result = await createTaskMutation.mutateAsync({ data: payload })
+      console.log("Task created", result)
+      toast({ title: "Task created", description: `Work order #${result.id} has been created successfully.` })
       setLocation('/tasks')
     } catch (err) {
-      console.error('Failed to create task', err)
+      console.error("Failed to create task", err)
+      const message = (err as { response?: { data?: { error?: string; details?: unknown } } })?.response?.data?.error
+        ?? "An unexpected error occurred. Please try again."
+      toast({ title: "Failed to create task", description: message, variant: "destructive" })
     }
   }
 

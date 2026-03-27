@@ -113,7 +113,7 @@ export const GetComponentHistoryResponse = zod.object({
   totalTasks: zod.number(),
   completedTasks: zod.number(),
   avgRepairHours: zod.number().optional(),
-  lastMaintenanceDate: zod.date().optional(),
+  lastMaintenanceDate: zod.coerce.date().optional(),
   tasks: zod.array(
     zod.object({
       id: zod.number(),
@@ -134,7 +134,7 @@ export const GetComponentHistoryResponse = zod.object({
       assignedToName: zod.string().optional(),
       createdById: zod.number().optional(),
       estimatedHours: zod.string().optional(),
-      deadline: zod.date().optional(),
+      deadline: zod.coerce.date().optional(),
       priority: zod.enum(["high", "medium", "low"]),
       status: zod.enum([
         "draft",
@@ -151,7 +151,7 @@ export const GetComponentHistoryResponse = zod.object({
       totalMinutes: zod.number().optional(),
       version: zod.number(),
       createdAt: zod.date(),
-      updatedAt: zod.date().optional(),
+      updatedAt: zod.coerce.date().optional(),
     }),
   ),
 });
@@ -202,7 +202,7 @@ export const ListTasksResponse = zod.object({
       assignedToName: zod.string().optional(),
       createdById: zod.number().optional(),
       estimatedHours: zod.string().optional(),
-      deadline: zod.date().optional(),
+      deadline: zod.coerce.date().optional(),
       priority: zod.enum(["high", "medium", "low"]),
       status: zod.enum([
         "draft",
@@ -219,7 +219,7 @@ export const ListTasksResponse = zod.object({
       totalMinutes: zod.number().optional(),
       version: zod.number(),
       createdAt: zod.date(),
-      updatedAt: zod.date().optional(),
+      updatedAt: zod.coerce.date().optional(),
     }),
   ),
   total: zod.number(),
@@ -237,7 +237,7 @@ export const CreateTaskBody = zod.object({
   componentId: zod.number().optional(),
   assignedToId: zod.number().optional(),
   estimatedHours: zod.number().optional(),
-  deadline: zod.date().optional(),
+  deadline: zod.coerce.date().optional(),
   priority: zod.enum(["high", "medium", "low"]),
 });
 
@@ -268,7 +268,7 @@ export const GetTaskResponse = zod
     assignedToName: zod.string().optional(),
     createdById: zod.number().optional(),
     estimatedHours: zod.string().optional(),
-    deadline: zod.date().optional(),
+    deadline: zod.coerce.date().optional(),
     priority: zod.enum(["high", "medium", "low"]),
     status: zod.enum([
       "draft",
@@ -285,7 +285,7 @@ export const GetTaskResponse = zod
     totalMinutes: zod.number().optional(),
     version: zod.number(),
     createdAt: zod.date(),
-    updatedAt: zod.date().optional(),
+    updatedAt: zod.coerce.date().optional(),
   })
   .and(
     zod.object({
@@ -297,7 +297,7 @@ export const GetTaskResponse = zod
             userId: zod.number(),
             userName: zod.string().optional(),
             startTime: zod.date(),
-            endTime: zod.date().optional(),
+            endTime: zod.coerce.date().optional(),
             durationMinutes: zod.number().optional(),
             pauseReason: zod.string().optional(),
             isActive: zod.boolean(),
@@ -324,7 +324,7 @@ export const GetTaskResponse = zod
           userId: zod.number(),
           userName: zod.string().optional(),
           startTime: zod.date(),
-          endTime: zod.date().optional(),
+          endTime: zod.coerce.date().optional(),
           durationMinutes: zod.number().optional(),
           pauseReason: zod.string().optional(),
           isActive: zod.boolean(),
@@ -377,7 +377,7 @@ export const UpdateTaskStatusResponse = zod.object({
   assignedToName: zod.string().optional(),
   createdById: zod.number().optional(),
   estimatedHours: zod.string().optional(),
-  deadline: zod.date().optional(),
+  deadline: zod.coerce.date().optional(),
   priority: zod.enum(["high", "medium", "low"]),
   status: zod.enum([
     "draft",
@@ -394,7 +394,7 @@ export const UpdateTaskStatusResponse = zod.object({
   totalMinutes: zod.number().optional(),
   version: zod.number(),
   createdAt: zod.date(),
-  updatedAt: zod.date().optional(),
+  updatedAt: zod.coerce.date().optional(),
 });
 
 /**
@@ -410,7 +410,7 @@ export const ListTimeEntriesResponseItem = zod.object({
   userId: zod.number(),
   userName: zod.string().optional(),
   startTime: zod.date(),
-  endTime: zod.date().optional(),
+  endTime: zod.coerce.date().optional(),
   durationMinutes: zod.number().optional(),
   pauseReason: zod.string().optional(),
   isActive: zod.boolean(),
@@ -443,7 +443,7 @@ export const PauseTimeTrackingResponse = zod.object({
   userId: zod.number(),
   userName: zod.string().optional(),
   startTime: zod.date(),
-  endTime: zod.date().optional(),
+  endTime: zod.coerce.date().optional(),
   durationMinutes: zod.number().optional(),
   pauseReason: zod.string().optional(),
   isActive: zod.boolean(),
