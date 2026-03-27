@@ -1,6 +1,6 @@
 import * as React from "react";
 import { setAuthTokenGetter } from "@workspace/api-client-react";
-import { clearQueryCache } from "@/lib/queryClient";
+import { clearQueryCache, setLoggedIn } from "@/lib/queryClient";
 
 export interface AuthUser {
   id: number;
@@ -76,6 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               localStorage.setItem(TOKEN_KEY, data.token);
               localStorage.setItem(USER_KEY, JSON.stringify(data.user));
               savedToken = data.token;
+              savedUser = JSON.stringify(data.user); // fix: was always null
             }
           } catch {
             // Ignore — fall through to normal login screen
@@ -119,6 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!cancelled) {
           // Update localStorage with fresh user data from server
           localStorage.setItem(USER_KEY, JSON.stringify(serverUser));
+          setLoggedIn(true);
           setToken(savedToken);
           setUser(serverUser);
         }
@@ -128,6 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           const cachedUser = JSON.parse(savedUser);
           if (!cancelled) {
+            setLoggedIn(true);
             setToken(savedToken);
             setUser(cachedUser);
           }
@@ -165,11 +168,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem(TOKEN_KEY, data.token);
     localStorage.setItem(USER_KEY, JSON.stringify(data.user));
     clearQueryCache();
+    setLoggedIn(true);
     setToken(data.token);
     setUser(data.user);
   }, []);
 
   const logout = React.useCallback(() => {
+    setLoggedIn(false);
     clearStorage();
     clearQueryCache();
     setToken(null);

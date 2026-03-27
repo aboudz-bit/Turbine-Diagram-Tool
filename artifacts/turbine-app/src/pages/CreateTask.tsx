@@ -318,14 +318,23 @@ export default function CreateTask() {
 
   const { canCreateTask } = usePermissions()
   const { data: users } = useListUsers()
-  const { data: assets, isLoading: assetsLoading, isError: assetsError } = useListAssets({
+  const {
+    data: assets,
+    isLoading: assetsLoading,
+    isError: assetsError,
+    error: assetsQueryError,
+    refetch: refetchAssets,
+  } = useListAssets({
     query: { refetchOnMount: 'always', staleTime: 0 },
   })
   const createTaskMutation = useCreateTask()
 
   React.useEffect(() => {
     console.log('[CreateTask] assets state:', assets, 'loading:', assetsLoading, 'error:', assetsError)
-  }, [assets, assetsLoading, assetsError])
+    if (assetsError && assetsQueryError) {
+      console.error('[CreateTask] assets error detail:', assetsQueryError)
+    }
+  }, [assets, assetsLoading, assetsError, assetsQueryError])
 
   // ── Turbine selection (replaces hardcoded defaultAsset) ──
   const [selectedAsset, setSelectedAsset] = React.useState<Asset | null>(null)
@@ -622,8 +631,20 @@ export default function CreateTask() {
                   </div>
                 )}
                 {assetsError && !assetsLoading && (
-                  <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-xs text-destructive">
-                    Failed to load turbine units. Check your connection and refresh the page.
+                  <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 space-y-2">
+                    <p className="text-xs font-medium text-destructive">
+                      Failed to load turbine units
+                    </p>
+                    <p className="text-[11px] text-destructive/80">
+                      {(assetsQueryError as { message?: string })?.message ?? 'Check your connection and try again.'}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => { console.log('[CreateTask] Retrying assets fetch'); refetchAssets(); }}
+                      className="text-[11px] underline text-destructive hover:opacity-70"
+                    >
+                      Retry
+                    </button>
                   </div>
                 )}
                 {!assetsLoading && !assetsError && (assets ?? []).length === 0 && (
