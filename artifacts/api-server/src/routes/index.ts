@@ -12,6 +12,13 @@ import notificationsRouter from "./notifications";
 import attachmentsRouter from "./attachments";
 import auditRouter from "./audit";
 import storageRouter from "./storage";
+// Enterprise upgrade routes
+import deadlineRouter from "./deadline";
+import qrRouter from "./qr";
+import checklistsRouter from "./checklists";
+import analyticsRouter from "./analytics";
+import permissionsRouter from "./permissions";
+import integrationsRouter from "./integrations";
 
 const router: IRouter = Router();
 
@@ -31,5 +38,12 @@ router.use(notificationsRouter);
 router.use(attachmentsRouter);
 router.use(auditRouter);
 router.use(storageRouter);
+// Enterprise upgrade routes
+router.use(deadlineRouter);
+router.use(qrRouter);
+router.use(checklistsRouter);
+router.use(analyticsRouter);
+router.use(permissionsRouter);
+router.use(integrationsRouter);
 
 export default router;

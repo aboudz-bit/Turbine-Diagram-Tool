@@ -28,6 +28,7 @@ import { getQcContext, type QcContext } from "@/lib/qcRules"
 import type { TurbineModel, TurbineSectionSlug } from "@/lib/turbineTemplates"
 import { usePermissions } from "@/hooks/usePermissions"
 import { SignaturePad } from "@/components/SignaturePad"
+import { TaskChecklist } from "@/components/TaskChecklist"
 import { useAuth } from "@/hooks/useAuth"
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -671,6 +672,12 @@ export default function TaskDetail() {
               </div>
             )}
           </Card>
+
+          {/* ── QC CHECKLIST ── */}
+          <TaskChecklist
+            taskId={taskId}
+            readOnly={task.status === 'approved'}
+          />
 
           {/* ── AUDIT LOG ── */}
           {auditData && auditData.length > 0 && (
