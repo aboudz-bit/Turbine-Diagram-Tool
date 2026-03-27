@@ -63,6 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!storedUser || storedUser.id !== Number(urlDevUser)) {
           // Clear existing session and re-login as the requested user
           clearStorage();
+          clearQueryCache();
           savedToken = null;
           savedUser = null;
           try {

@@ -222,6 +222,11 @@ export default function TaskDetail() {
   const { data: attachmentsData, refetch: refetchAttachments } = useListAttachments(taskId, {
     query: { enabled: !!taskId }
   })
+
+  React.useEffect(() => {
+    console.log("[TaskDetail] attachments for task", taskId, ":", attachmentsData)
+  }, [attachmentsData, taskId])
+
   const { data: auditData } = useGetTaskAuditLog(taskId, {
     query: { enabled: !!taskId }
   })
@@ -355,13 +360,20 @@ export default function TaskDetail() {
       const { uploadURL, objectPath } = await requestUploadUrlMutation.mutateAsync({
         data: { name: file.name, size: file.size, contentType: file.type }
       })
-      await fetch(uploadURL, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } })
-      await createAttachmentMutation.mutateAsync({
+      console.log("[TaskDetail] uploading to GCS, objectPath:", objectPath)
+      const gcsResponse = await fetch(uploadURL, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } })
+      if (!gcsResponse.ok) {
+        console.error("[TaskDetail] GCS upload failed:", gcsResponse.status, gcsResponse.statusText)
+        throw new Error(`File storage upload failed (${gcsResponse.status})`)
+      }
+      const saved = await createAttachmentMutation.mutateAsync({
         taskId,
         data: { fileName: file.name, mimeType: file.type, fileSize: file.size, storageUrl: objectPath },
       })
+      console.log("[TaskDetail] attachment saved:", saved)
       refetchAttachments()
-    } catch {
+    } catch (err) {
+      console.error("[TaskDetail] upload error:", err)
       setUploadError('Upload failed. Please try again.')
     } finally {
       setUploading(false)
@@ -678,7 +690,7 @@ export default function TaskDetail() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <a
-                          href={att.storageUrl}
+                          href={att.storageUrl.startsWith('/objects/') ? `/api/storage${att.storageUrl}` : att.storageUrl}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-xs font-medium text-foreground hover:text-primary truncate block transition-colors">

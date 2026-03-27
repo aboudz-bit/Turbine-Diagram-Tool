@@ -92,6 +92,8 @@ router.post("/tasks/:taskId/attachments", async (req, res): Promise<void> => {
       .values({ taskId, uploadedByUserId: userId, fileName, mimeType, fileSize: fileSize ?? 0, storageUrl, attachmentType })
       .returning();
 
+    req.log.info({ attachmentId: att.id, taskId, uploadedByUserId: userId, fileName, storageUrl }, "Attachment saved");
+
     const [uploader] = await db.select({ name: usersTable.name }).from(usersTable).where(eq(usersTable.id, userId));
 
     await logAuditEvent({
