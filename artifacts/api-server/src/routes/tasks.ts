@@ -14,6 +14,28 @@ import {
   UpdateTaskStatusBody,
   ListTasksQueryParams,
 } from "@workspace/api-zod";
+
+/**
+ * Patched CreateTaskBody: the generated schema uses zod.date() for deadline,
+ * but JSON request bodies always contain strings, not Date objects.
+ * We wrap safeParse to pre-coerce the deadline field before delegating to the
+ * original schema, keeping the fix local without importing zod directly.
+ */
+const CreateTaskBodyPatched = {
+  safeParse(data: unknown) {
+    if (data && typeof data === "object" && "deadline" in data) {
+      const d = data as Record<string, unknown>;
+      if (typeof d.deadline === "string") {
+        const parsed = new Date(d.deadline);
+        if (!isNaN(parsed.getTime())) {
+          d.deadline = parsed;
+        }
+        // If invalid, leave as string — Zod will reject it with a clear error
+      }
+    }
+    return CreateTaskBody.safeParse(data);
+  },
+};
 import {
   taskBaseQuery,
   buildTaskRow,
@@ -104,7 +126,7 @@ router.get(
   },
 );
 
-router.post("/tasks", validateBody(CreateTaskBody), async (req, res) => {
+router.post("/tasks", validateBody(CreateTaskBodyPatched), async (req, res) => {
   try {
     const {
       title,
@@ -118,6 +140,15 @@ router.post("/tasks", validateBody(CreateTaskBody), async (req, res) => {
       deadline,
       priority,
     } = req.body;
+
+    // Validate deadline is a parseable date if provided
+    if (deadline) {
+      const parsed = new Date(deadline);
+      if (isNaN(parsed.getTime())) {
+        res.status(400).json({ error: "Invalid deadline format. Use ISO-8601 (e.g. 2025-12-31T23:59:59Z)." });
+        return;
+      }
+    }
 
     const [task] = await db
       .insert(tasksTable)
@@ -139,9 +170,10 @@ router.post("/tasks", validateBody(CreateTaskBody), async (req, res) => {
 
     const full = await buildTaskRow(task.id);
     res.status(201).json(full);
-  } catch (err) {
-    req.log.error({ err }, "Failed to create task");
-    res.status(500).json({ error: "Internal server error" });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    req.log.error({ err, body: req.body }, "CREATE TASK ERROR");
+    res.status(500).json({ error: message });
   }
 });
 

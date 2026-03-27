@@ -15,6 +15,7 @@ import {
 } from "@workspace/api-client-react"
 import { TurbineDiagram, SECTION_SLUG_MAP, type TurbineSectionID } from "@/components/TurbineDiagram"
 import { Card, Button, Input, Label, Textarea, Badge, Select } from "@/components/ui/core"
+import { toast } from "sonner"
 
 const SECTION_META: Record<TurbineSectionID, { icon: React.ElementType; color: string; borderColor: string; bgColor: string; desc: string }> = {
   'compressor': {
@@ -129,8 +130,11 @@ export default function CreateTask() {
         }
       })
       setLocation('/tasks')
-    } catch (err) {
-      console.error('Failed to create task', err)
+    } catch (err: unknown) {
+      const apiData = err && typeof err === "object" && "data" in err
+        ? (err as { data?: { error?: string } }).data
+        : null;
+      toast.error(apiData?.error || (err instanceof Error ? err.message : "Failed to create task"));
     }
   }
 
