@@ -407,6 +407,100 @@ paths:
               schema:
                 $ref: "#/components/schemas/QcReview"
 
+  /tasks/{taskId}/signatures:
+    get:
+      operationId: listSignatures
+      tags: [tasks]
+      summary: List electronic signatures for a task
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of signatures
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Signature"
+    post:
+      operationId: addSignature
+      tags: [tasks]
+      summary: Add an electronic signature to a task
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSignatureInput"
+      responses:
+        "201":
+          description: Signature saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Signature"
+
+  /notifications:
+    get:
+      operationId: listNotifications
+      tags: [notifications]
+      summary: List notifications for the current user
+      responses:
+        "200":
+          description: List of notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Notification"
+
+  /notifications/read-all:
+    patch:
+      operationId: markAllNotificationsRead
+      tags: [notifications]
+      summary: Mark all notifications as read
+      responses:
+        "200":
+          description: All notifications marked read
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+
+  /notifications/{id}/read:
+    patch:
+      operationId: markNotificationRead
+      tags: [notifications]
+      summary: Mark a single notification as read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Notification marked read
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Notification"
+
   /dashboard/stats:
     get:
       operationId: getDashboardStats
@@ -790,3 +884,58 @@ components:
         comments:
           type: string
       required: [decision]
+
+    Signature:
+      type: object
+      properties:
+        id:
+          type: integer
+        taskId:
+          type: integer
+        userId:
+          type: integer
+        signatureType:
+          type: string
+          enum: [technician_completion, supervisor_qc_approval]
+        signerName:
+          type: string
+        signerRole:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, taskId, userId, signatureType, signerName, signerRole, createdAt]
+
+    CreateSignatureInput:
+      type: object
+      properties:
+        signatureType:
+          type: string
+          enum: [technician_completion, supervisor_qc_approval]
+        signatureData:
+          type: string
+          description: Base64-encoded PNG image of the signature
+      required: [signatureType, signatureData]
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        taskId:
+          type: integer
+        type:
+          type: string
+          enum: [task_assigned, task_submitted, task_rejected, task_revision_needed, task_approved, task_overdue]
+        title:
+          type: string
+        message:
+          type: string
+        isRead:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, userId, type, title, message, isRead, createdAt]

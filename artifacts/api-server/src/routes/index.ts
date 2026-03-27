@@ -7,6 +7,8 @@ import tasksRouter from "./tasks";
 import timeRouter from "./time";
 import qcRouter from "./qc";
 import dashboardRouter from "./dashboard";
+import signaturesRouter from "./signatures";
+import notificationsRouter from "./notifications";
 
 const router: IRouter = Router();
 
@@ -21,5 +23,7 @@ router.use(tasksRouter);
 router.use(timeRouter);
 router.use(qcRouter);
 router.use(dashboardRouter);
+router.use(signaturesRouter);
+router.use(notificationsRouter);
 
 export default router;

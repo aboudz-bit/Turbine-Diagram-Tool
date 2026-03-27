@@ -5,6 +5,8 @@ import {
   usersTable,
   timeEntriesTable,
   qcReviewsTable,
+  signaturesTable,
+  notificationsTable,
 } from "@workspace/db";
 import { eq, and, sql } from "drizzle-orm";
 import { isValidTransition, getValidTransitions } from "../lib/state-machine";
@@ -20,6 +22,8 @@ import {
   applyEffectiveStatus,
 } from "../lib/task-queries";
 import { computeEffectiveStatus } from "../lib/task-utils";
+import { requireRole } from "../middleware/auth";
+import { createNotification, notifyRoles } from "../lib/notifications";
 
 const router: IRouter = Router();
 
@@ -62,7 +66,6 @@ router.get(
 
       const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-      // For "overdue" filter, we need all rows since overdue is computed
       if (status === "overdue") {
         const allTasks = await taskBaseQuery()
           .where(whereClause)
@@ -72,18 +75,23 @@ router.get(
           .map((t) => ({ ...applyEffectiveStatus(t), totalMinutes: 0 }))
           .filter((t) => t.status === "overdue");
 
+        // Create overdue notifications (once per task, non-blocking)
+        for (const t of overdueTasks) {
+          if (t.assignedToId) {
+            createOverdueNotification(t.id, t.assignedToId, t.title).catch(() => {});
+          }
+        }
+
         const total = overdueTasks.length;
         const data = overdueTasks.slice(offset, offset + limit);
         res.json({ data, total });
       } else {
-        // Count total matching rows
         const [countResult] = await db
           .select({ count: sql<number>`count(*)::int` })
           .from(tasksTable)
           .where(whereClause);
         const total = countResult?.count ?? 0;
 
-        // Fetch paginated results
         const tasks = await taskBaseQuery()
           .where(whereClause)
           .orderBy(tasksTable.createdAt)
@@ -104,46 +112,63 @@ router.get(
   },
 );
 
-router.post("/tasks", validateBody(CreateTaskBody), async (req, res) => {
-  try {
-    const {
-      title,
-      description,
-      assetId,
-      sectionId,
-      stageId,
-      componentId,
-      assignedToId,
-      estimatedHours,
-      deadline,
-      priority,
-    } = req.body;
-
-    const [task] = await db
-      .insert(tasksTable)
-      .values({
+router.post(
+  "/tasks",
+  requireRole("engineer", "supervisor", "site_manager"),
+  validateBody(CreateTaskBody),
+  async (req, res) => {
+    try {
+      const {
         title,
-        description: description || null,
+        description,
         assetId,
-        sectionId: sectionId || null,
-        stageId: stageId || null,
-        componentId: componentId || null,
-        assignedToId: assignedToId || null,
-        createdById: req.user!.id,
-        estimatedHours: estimatedHours ? estimatedHours.toString() : null,
-        deadline: deadline ? new Date(deadline) : null,
-        priority: priority ?? "medium",
-        status: assignedToId ? "assigned" : "draft",
-      })
-      .returning();
+        sectionId,
+        stageId,
+        componentId,
+        assignedToId,
+        estimatedHours,
+        deadline,
+        priority,
+      } = req.body;
 
-    const full = await buildTaskRow(task.id);
-    res.status(201).json(full);
-  } catch (err) {
-    req.log.error({ err }, "Failed to create task");
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
+      const [task] = await db
+        .insert(tasksTable)
+        .values({
+          title,
+          description: description || null,
+          assetId,
+          sectionId: sectionId || null,
+          stageId: stageId || null,
+          componentId: componentId || null,
+          assignedToId: assignedToId || null,
+          createdById: req.user!.id,
+          estimatedHours: estimatedHours ? estimatedHours.toString() : null,
+          deadline: deadline ? new Date(deadline) : null,
+          priority: priority ?? "medium",
+          status: assignedToId ? "assigned" : "draft",
+        })
+        .returning();
+
+      const full = await buildTaskRow(task.id);
+
+      // Notify assigned technician
+      if (assignedToId) {
+        await createNotification(
+          assignedToId,
+          task.id,
+          "task_assigned",
+          "New Task Assigned",
+          `You have been assigned: ${title}`,
+        ).catch(() => {});
+      }
+
+      res.status(201).json(full);
+    } catch (err) {
+      req.log.error({ err }, "Failed to create task");
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+);
 
 router.get("/tasks/:taskId", async (req, res): Promise<void> => {
   try {
@@ -155,7 +180,6 @@ router.get("/tasks/:taskId", async (req, res): Promise<void> => {
       return;
     }
 
-    // Time entries with computed fields
     const timeEntries = await db
       .select({
         id: timeEntriesTable.id,
@@ -186,7 +210,6 @@ router.get("/tasks/:taskId", async (req, res): Promise<void> => {
 
     const activeEntry = mappedEntries.find((e) => e.isActive) ?? null;
 
-    // QC reviews
     const qcReviews = await db
       .select({
         id: qcReviewsTable.id,
@@ -202,11 +225,27 @@ router.get("/tasks/:taskId", async (req, res): Promise<void> => {
       .where(eq(qcReviewsTable.taskId, taskId))
       .orderBy(qcReviewsTable.createdAt);
 
+    // Signatures (exclude raw image data from list response for perf)
+    const signatures = await db
+      .select({
+        id: signaturesTable.id,
+        taskId: signaturesTable.taskId,
+        userId: signaturesTable.userId,
+        signatureType: signaturesTable.signatureType,
+        signerName: signaturesTable.signerName,
+        signerRole: signaturesTable.signerRole,
+        createdAt: signaturesTable.createdAt,
+      })
+      .from(signaturesTable)
+      .where(eq(signaturesTable.taskId, taskId))
+      .orderBy(signaturesTable.createdAt);
+
     res.json({
       ...task,
       timeEntries: mappedEntries,
       activeTimeEntry: activeEntry,
       qcReviews,
+      signatures,
     });
   } catch (err) {
     req.log.error({ err }, "Failed to get task");
@@ -232,16 +271,32 @@ router.patch(
         return;
       }
 
-      // Lock approved tasks
       if (existing.status === "approved") {
         res.status(403).json({ error: "Approved tasks cannot be modified" });
         return;
       }
 
-      // Use effective status (computed overdue) for transition validation
+      // Require technician signature before submitting
+      if (status === "submitted") {
+        const [techSig] = await db
+          .select()
+          .from(signaturesTable)
+          .where(
+            and(
+              eq(signaturesTable.taskId, taskId),
+              eq(signaturesTable.signatureType, "technician_completion"),
+            ),
+          );
+        if (!techSig) {
+          res.status(400).json({
+            error: "Technician completion signature required before submitting for QC review.",
+          });
+          return;
+        }
+      }
+
       const effectiveStatus = computeEffectiveStatus(existing);
 
-      // Enforce state machine
       if (!isValidTransition(effectiveStatus, status)) {
         res.status(400).json({
           error: `Invalid status transition from '${effectiveStatus}' to '${status}'`,
@@ -250,7 +305,6 @@ router.patch(
         return;
       }
 
-      // Optimistic locking: only update if version matches
       const [updated] = await db
         .update(tasksTable)
         .set({
@@ -270,6 +324,18 @@ router.patch(
       }
 
       const full = await buildTaskRow(taskId);
+
+      // Notifications for key status transitions
+      if (status === "submitted" && existing.assignedToId) {
+        await notifyRoles(
+          ["engineer", "supervisor", "site_manager"],
+          taskId,
+          "task_submitted",
+          "Task Ready for QC Review",
+          `Task "${existing.title}" has been submitted for QC review.`,
+        ).catch(() => {});
+      }
+
       res.json(full);
     } catch (err) {
       req.log.error({ err }, "Failed to update task");
@@ -287,5 +353,34 @@ router.get("/users", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
+async function createOverdueNotification(taskId: number, assignedToId: number, title: string): Promise<void> {
+  try {
+    // Check if overdue notification was already sent for this task recently
+    const existing = await db
+      .select({ id: notificationsTable.id })
+      .from(notificationsTable)
+      .where(
+        and(
+          eq(notificationsTable.taskId, taskId),
+          eq(notificationsTable.type, "task_overdue"),
+          eq(notificationsTable.userId, assignedToId),
+        ),
+      )
+      .limit(1);
+
+    if (existing.length === 0) {
+      await createNotification(
+        assignedToId,
+        taskId,
+        "task_overdue",
+        "Task Overdue",
+        `Task "${title}" is past its deadline and marked overdue.`,
+      );
+    }
+  } catch {
+    // Non-critical
+  }
+}
 
 export default router;

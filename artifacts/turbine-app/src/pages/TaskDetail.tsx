@@ -5,7 +5,7 @@ import {
   CheckCircle2, Clock, Pause, Play, AlertCircle,
   ShieldCheck, ChevronRight, Lock, ChevronLeft,
   Calendar, User, Gauge, Timer, Send, ShieldAlert,
-  AlertTriangle, ChevronDown, ChevronUp,
+  AlertTriangle, ChevronDown, ChevronUp, Pen,
 } from "lucide-react"
 import {
   useGetTask,
@@ -18,8 +18,11 @@ import { Card, Button, Badge, Label, Textarea, Input } from "@/components/ui/cor
 import { cn } from "@/lib/utils"
 import { getQcContext, type QcContext } from "@/lib/qcRules"
 import type { TurbineModel, TurbineSectionSlug } from "@/lib/turbineTemplates"
+import { usePermissions } from "@/hooks/usePermissions"
+import { SignaturePad } from "@/components/SignaturePad"
+import { useAuth } from "@/hooks/useAuth"
 
-// Derive turbine model from asset name
+// ── helpers ───────────────────────────────────────────────────────────────────
 function getTurbineModel(assetName?: string | null): TurbineModel | null {
   if (!assetName) return null
   if (assetName.includes('SGT-9000HL')) return 'SGT-9000HL'
@@ -27,7 +30,6 @@ function getTurbineModel(assetName?: string | null): TurbineModel | null {
   return null
 }
 
-// Reverse map section name → slug
 const SECTION_SLUG_BY_NAME: Record<string, TurbineSectionSlug> = {
   'Compressor': 'compressor',
   'Mid Frame': 'mid-frame',
@@ -38,40 +40,34 @@ const SECTION_SLUG_BY_NAME: Record<string, TurbineSectionSlug> = {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  draft:      { label: 'Draft',       color: 'text-slate-600',   bg: 'bg-slate-100',  border: 'border-slate-300' },
-  assigned:   { label: 'Assigned',    color: 'text-amber-700',   bg: 'bg-amber-50',   border: 'border-amber-300' },
-  in_progress:{ label: 'In Progress', color: 'text-sky-700',     bg: 'bg-sky-50',     border: 'border-sky-300' },
-  paused:     { label: 'Paused',      color: 'text-orange-700',  bg: 'bg-orange-50',  border: 'border-orange-300' },
-  submitted:  { label: 'Submitted',   color: 'text-purple-700',  bg: 'bg-purple-50',  border: 'border-purple-300' },
-  under_qc:   { label: 'Under QC',    color: 'text-purple-700',  bg: 'bg-purple-50',  border: 'border-purple-300' },
-  approved:   { label: 'Approved',    color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-300' },
-  rejected:         { label: 'Rejected',         color: 'text-red-700',     bg: 'bg-red-50',     border: 'border-red-300' },
-  revision_needed:  { label: 'Revision Needed', color: 'text-amber-700',   bg: 'bg-amber-50',  border: 'border-amber-300' },
-  overdue:          { label: 'Overdue',          color: 'text-red-700',     bg: 'bg-red-100',    border: 'border-red-400' },
+  draft:           { label: 'Draft',           color: 'text-slate-600',   bg: 'bg-slate-100',  border: 'border-slate-300' },
+  assigned:        { label: 'Assigned',        color: 'text-amber-700',   bg: 'bg-amber-50',   border: 'border-amber-300' },
+  in_progress:     { label: 'In Progress',     color: 'text-sky-700',     bg: 'bg-sky-50',     border: 'border-sky-300' },
+  paused:          { label: 'Paused',          color: 'text-orange-700',  bg: 'bg-orange-50',  border: 'border-orange-300' },
+  submitted:       { label: 'Submitted',       color: 'text-purple-700',  bg: 'bg-purple-50',  border: 'border-purple-300' },
+  under_qc:        { label: 'Under QC',        color: 'text-purple-700',  bg: 'bg-purple-50',  border: 'border-purple-300' },
+  approved:        { label: 'Approved',        color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-300' },
+  rejected:        { label: 'Rejected',        color: 'text-red-700',     bg: 'bg-red-50',     border: 'border-red-300' },
+  revision_needed: { label: 'Revision Needed', color: 'text-amber-700',   bg: 'bg-amber-50',   border: 'border-amber-300' },
+  overdue:         { label: 'Overdue',         color: 'text-red-700',     bg: 'bg-red-100',    border: 'border-red-400' },
 }
 
-const PRIORITY_COLORS = {
-  high:   'bg-red-500',
-  medium: 'bg-amber-500',
-  low:    'bg-blue-500',
-}
+const PRIORITY_COLORS = { high: 'bg-red-500', medium: 'bg-amber-500', low: 'bg-blue-500' }
 
 function formatMinutes(mins?: number | null) {
   if (!mins) return '0h 0m'
   return `${Math.floor(mins / 60)}h ${mins % 60}m`
 }
 
+// ── QcRulesDetailPanel (unchanged) ───────────────────────────────────────────
 function QcRulesDetailPanel({ qcContext, turbineModel }: { qcContext: QcContext; turbineModel: TurbineModel }) {
   const [open, setOpen] = React.useState(false)
   const mandatoryCount = qcContext.rules.filter(r => r.mandatory).length
 
   return (
     <Card className="overflow-hidden">
-      {/* Warning banner */}
       {qcContext.warning && (
-        <div className={`flex items-start gap-3 px-5 py-3.5 border-b border-border ${
-          qcContext.isCriticalZone ? 'bg-red-50' : 'bg-amber-50'
-        }`}>
+        <div className={`flex items-start gap-3 px-5 py-3.5 border-b border-border ${qcContext.isCriticalZone ? 'bg-red-50' : 'bg-amber-50'}`}>
           {qcContext.isCriticalZone
             ? <ShieldAlert className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
             : <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />}
@@ -93,7 +89,6 @@ function QcRulesDetailPanel({ qcContext, turbineModel }: { qcContext: QcContext;
         </div>
       )}
 
-      {/* Collapsible rules header */}
       <button
         className="w-full flex items-center gap-3 px-5 py-4 bg-white hover:bg-muted/30 transition-colors text-left"
         onClick={() => setOpen(!open)}
@@ -112,24 +107,16 @@ function QcRulesDetailPanel({ qcContext, turbineModel }: { qcContext: QcContext;
       {open && (
         <div className="px-5 pb-4 pt-1 space-y-2 border-t border-border">
           {qcContext.rules.map((rule) => (
-            <div key={rule.id} className={`flex items-start gap-2.5 p-3 rounded-xl ${
-              rule.mandatory ? 'bg-primary/5 border border-primary/20' : 'bg-muted/40'
-            }`}>
-              <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
-                rule.mandatory ? 'bg-primary text-white' : 'bg-muted border border-border text-muted-foreground'
-              }`}>
-                {rule.mandatory
-                  ? <ShieldAlert className="w-3 h-3" />
-                  : <CheckCircle2 className="w-3 h-3" />}
+            <div key={rule.id} className={`flex items-start gap-2.5 p-3 rounded-xl ${rule.mandatory ? 'bg-primary/5 border border-primary/20' : 'bg-muted/40'}`}>
+              <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${rule.mandatory ? 'bg-primary text-white' : 'bg-muted border border-border text-muted-foreground'}`}>
+                {rule.mandatory ? <ShieldAlert className="w-3 h-3" /> : <CheckCircle2 className="w-3 h-3" />}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold text-foreground leading-snug">{rule.label}</p>
                 {rule.detail && <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{rule.detail}</p>}
               </div>
               {rule.mandatory && (
-                <span className="text-[9px] font-bold uppercase text-primary bg-primary/10 px-1.5 py-0.5 rounded tracking-wide flex-shrink-0">
-                  REQ
-                </span>
+                <span className="text-[9px] font-bold uppercase text-primary bg-primary/10 px-1.5 py-0.5 rounded tracking-wide flex-shrink-0">REQ</span>
               )}
             </div>
           ))}
@@ -139,10 +126,40 @@ function QcRulesDetailPanel({ qcContext, turbineModel }: { qcContext: QcContext;
   )
 }
 
+// ── API helpers ───────────────────────────────────────────────────────────────
+async function saveSignature(taskId: number, signatureType: string, signatureData: string): Promise<void> {
+  const token = localStorage.getItem("turbine_auth_token")
+  const res = await fetch(`/api/tasks/${taskId}/signatures`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ signatureType, signatureData }),
+  })
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error((body as { error?: string }).error ?? "Failed to save signature")
+  }
+}
+
+async function submitTaskForQc(taskId: number, version: number): Promise<void> {
+  const token = localStorage.getItem("turbine_auth_token")
+  const res = await fetch(`/api/tasks/${taskId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ status: "submitted", version }),
+  })
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error((body as { error?: string }).error ?? "Failed to submit task")
+  }
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
 export default function TaskDetail() {
   const { id } = useParams<{ id: string }>()
   const taskId = parseInt(id)
   const [, setLocation] = useLocation()
+  const { canApproveQc } = usePermissions()
+  const { user } = useAuth()
 
   const { data: task, isLoading, refetch } = useGetTask(taskId, {
     query: { enabled: !!taskId }
@@ -156,6 +173,9 @@ export default function TaskDetail() {
   const [pauseReason, setPauseReason] = React.useState('')
   const [showPauseModal, setShowPauseModal] = React.useState(false)
   const [qcComment, setQcComment] = React.useState('')
+  const [submitError, setSubmitError] = React.useState('')
+  const [submitting, setSubmitting] = React.useState(false)
+  const [sigError, setSigError] = React.useState('')
 
   if (isLoading || !task) {
     return (
@@ -173,10 +193,17 @@ export default function TaskDetail() {
   const sectionSlug = task.sectionName ? SECTION_SLUG_BY_NAME[task.sectionName] ?? null : null
   const qcContext = turbineModel && sectionSlug ? getQcContext(turbineModel, sectionSlug) : null
 
+  // Signatures from task detail response
+  const signatures = (task as unknown as { signatures?: Array<{ signatureType: string; signerName: string; signerRole: string; createdAt: string }> }).signatures ?? []
+  const techSig = signatures.find(s => s.signatureType === 'technician_completion') ?? null
+  const supervisorSig = signatures.find(s => s.signatureType === 'supervisor_qc_approval') ?? null
+
+  // ── handlers ──────────────────────────────────────────────────────────────
   const handleStart = async () => {
     await startMutation.mutateAsync({ taskId, data: {} })
     refetch()
   }
+
   const handlePause = async () => {
     if (!pauseReason) return
     await pauseMutation.mutateAsync({ taskId, data: { reason: pauseReason } })
@@ -184,28 +211,64 @@ export default function TaskDetail() {
     setPauseReason('')
     refetch()
   }
+
   const handleResume = async () => {
     await resumeMutation.mutateAsync({ taskId })
     refetch()
   }
-  const handleSubmitForQc = async () => {
+
+  const handleSaveTechSignature = async (dataUrl: string) => {
+    setSigError('')
+    await saveSignature(taskId, 'technician_completion', dataUrl)
     refetch()
   }
+
+  const handleSaveSupervisorSignature = async (dataUrl: string) => {
+    setSigError('')
+    await saveSignature(taskId, 'supervisor_qc_approval', dataUrl)
+    refetch()
+  }
+
+  const handleSubmitForQc = async () => {
+    if (!techSig) {
+      setSubmitError('Technician completion signature is required before submitting.')
+      return
+    }
+    setSubmitting(true)
+    setSubmitError('')
+    try {
+      await submitTaskForQc(taskId, task.version ?? 1)
+      refetch()
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Failed to submit task')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   const handleQcSubmit = async (decision: 'approved' | 'rejected') => {
     if (decision === 'rejected' && !qcComment) return
+    if (decision === 'approved' && !supervisorSig) {
+      setSigError('QC approval signature required before approving.')
+      return
+    }
+    setSigError('')
     await qcMutation.mutateAsync({ taskId, data: { decision, comments: qcComment } })
     refetch()
   }
 
+  const canSubmit = ['in_progress', 'paused', 'revision_needed'].includes(task.status) && !task.activeTimeEntry
+
   return (
     <div className="max-w-5xl mx-auto pb-20 space-y-5">
-      {/* ── BACK NAV ── */}
+
+      {/* BACK NAV */}
       <button onClick={() => setLocation('/tasks')}
         className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors duration-150 group">
         <ChevronLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform duration-150" /> Back to Task List
       </button>
 
-      {/* ── TASK HEADER ── */}
+      {/* TASK HEADER */}
       <div className={`rounded-2xl border overflow-hidden shadow-sm ${isLocked ? 'border-emerald-300 bg-emerald-50/50' : 'border-border bg-white'}`}>
         <div className="flex items-center gap-0">
           <div className={`w-1.5 self-stretch ${priorityColor}`} />
@@ -227,14 +290,8 @@ export default function TaskDetail() {
                   <span>{task.assetName || 'SGT-9000HL'}</span>
                   <ChevronRight className="w-3 h-3" />
                   <span>{task.sectionName}</span>
-                  {task.stageName && <>
-                    <ChevronRight className="w-3 h-3" />
-                    <span>{task.stageName}</span>
-                  </>}
-                  {task.componentName && <>
-                    <ChevronRight className="w-3 h-3" />
-                    <span className="text-primary font-medium">{task.componentName}</span>
-                  </>}
+                  {task.stageName && <><ChevronRight className="w-3 h-3" /><span>{task.stageName}</span></>}
+                  {task.componentName && <><ChevronRight className="w-3 h-3" /><span className="text-primary font-medium">{task.componentName}</span></>}
                 </div>
               </div>
 
@@ -272,10 +329,12 @@ export default function TaskDetail() {
         </div>
       </div>
 
-      {/* ── MAIN BODY ── */}
+      {/* MAIN BODY */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Left: description + time log + QC history */}
+
+        {/* ── LEFT: description + time log + QC history ── */}
         <div className="lg:col-span-2 space-y-5">
+
           {/* Description */}
           <Card className={cn("p-6", isLocked && "opacity-80")}>
             <h3 className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground mb-4 flex items-center gap-2">
@@ -326,9 +385,7 @@ export default function TaskDetail() {
                           {te.durationMinutes != null ? formatMinutes(te.durationMinutes) : '—'}
                         </td>
                         <td className="py-2.5 text-muted-foreground">
-                          {te.pauseReason ? (
-                            <span className="text-amber-600">Paused: {te.pauseReason}</span>
-                          ) : '—'}
+                          {te.pauseReason ? <span className="text-amber-600">Paused: {te.pauseReason}</span> : '—'}
                         </td>
                       </tr>
                     ))}
@@ -358,26 +415,50 @@ export default function TaskDetail() {
                       <div className="flex items-center justify-between mb-1.5 flex-wrap gap-2">
                         <div className="flex items-center gap-2">
                           <Badge variant={qc.decision === 'approved' ? 'success' : 'destructive'}
-                            className="text-[10px] uppercase tracking-wider">
-                            {qc.decision}
-                          </Badge>
+                            className="text-[10px] uppercase tracking-wider">{qc.decision}</Badge>
                           <span className="text-xs text-muted-foreground">by {qc.reviewerName}</span>
                         </div>
                         <span className="text-[10px] text-muted-foreground">{format(new Date(qc.createdAt), 'MMM d, yyyy HH:mm')}</span>
                       </div>
-                      {qc.comments && (
-                        <p className="text-xs text-foreground leading-relaxed">{qc.comments}</p>
-                      )}
+                      {qc.comments && <p className="text-xs text-foreground leading-relaxed">{qc.comments}</p>}
                     </div>
                   </div>
                 ))}
               </div>
             </Card>
           )}
+
+          {/* Signatures record (read-only, shown when task has sigs) */}
+          {signatures.length > 0 && (
+            <Card className="p-6">
+              <h3 className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground mb-4 flex items-center gap-2">
+                <Pen className="w-3.5 h-3.5" /> Electronic Signatures
+              </h3>
+              <div className="space-y-3">
+                {techSig && (
+                  <SignaturePad
+                    label="Technician Completion Signature"
+                    existingSignature={techSig}
+                    onSave={handleSaveTechSignature}
+                    readOnly={true}
+                  />
+                )}
+                {supervisorSig && (
+                  <SignaturePad
+                    label="QC Approval Signature"
+                    existingSignature={supervisorSig}
+                    onSave={handleSaveSupervisorSignature}
+                    readOnly={true}
+                  />
+                )}
+              </div>
+            </Card>
+          )}
         </div>
 
-        {/* Right: action panels */}
+        {/* ── RIGHT: action panels ── */}
         <div className="space-y-5">
+
           {/* APPROVED LOCK STATE */}
           {isLocked && (
             <Card className="p-7 border-emerald-300 bg-emerald-50 text-center shadow-sm">
@@ -397,7 +478,7 @@ export default function TaskDetail() {
           )}
 
           {/* TIME TRACKING PANEL */}
-          {!isLocked && (
+          {!isLocked && !['submitted', 'under_qc'].includes(task.status) && (
             <Card className={cn("p-6", task.activeTimeEntry && "border-sky-300 bg-sky-50/30")}>
               <h3 className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground mb-5 flex items-center gap-2">
                 <Timer className="w-3.5 h-3.5" /> Time Tracking
@@ -420,8 +501,7 @@ export default function TaskDetail() {
               <div className="space-y-2">
                 {(task.status === 'assigned' || task.status === 'draft' ||
                   (!task.activeTimeEntry && !['paused', 'in_progress'].includes(task.status))) && (
-                  <Button onClick={handleStart} className="w-full gap-2"
-                    disabled={startMutation.isPending}>
+                  <Button onClick={handleStart} className="w-full gap-2" disabled={startMutation.isPending}>
                     <Play className="w-4 h-4" />
                     {startMutation.isPending ? 'Starting...' : 'Start Work'}
                   </Button>
@@ -444,12 +524,6 @@ export default function TaskDetail() {
                     {resumeMutation.isPending ? 'Resuming...' : 'Resume Work'}
                   </Button>
                 )}
-
-                {task.status === 'in_progress' && !task.activeTimeEntry && (
-                  <Button className="w-full gap-2 bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-300">
-                    <Send className="w-4 h-4" /> Submit for QC Review
-                  </Button>
-                )}
               </div>
 
               {showPauseModal && (
@@ -462,55 +536,124 @@ export default function TaskDetail() {
                     autoFocus
                   />
                   <div className="flex gap-2">
-                    <Button variant="secondary" className="flex-1 text-xs"
-                      onClick={() => setShowPauseModal(false)}>Cancel</Button>
-                    <Button className="flex-1 text-xs"
-                      onClick={handlePause} disabled={!pauseReason || pauseMutation.isPending}>
-                      Confirm Pause
-                    </Button>
+                    <Button variant="secondary" className="flex-1 text-xs" onClick={() => setShowPauseModal(false)}>Cancel</Button>
+                    <Button className="flex-1 text-xs" onClick={handlePause} disabled={!pauseReason || pauseMutation.isPending}>Confirm Pause</Button>
                   </div>
                 </div>
               )}
             </Card>
           )}
 
-          {/* QC DECISION PANEL */}
-          {!isLocked && ['submitted', 'under_qc'].includes(task.status) && (
-            <Card className="p-6 border-purple-300 bg-purple-50/50">
-              <h3 className="text-[10px] font-bold uppercase tracking-[0.12em] text-purple-700 mb-5 flex items-center gap-2">
+          {/* TECHNICIAN COMPLETION SIGNATURE + SUBMIT */}
+          {!isLocked && canSubmit && (
+            <Card className="p-6 space-y-4">
+              <h3 className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground flex items-center gap-2">
+                <Pen className="w-3.5 h-3.5" /> Completion Signature
+              </h3>
+
+              <SignaturePad
+                label="Technician Completion"
+                existingSignature={techSig}
+                onSave={handleSaveTechSignature}
+                readOnly={false}
+              />
+
+              {!techSig && (
+                <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 flex items-center gap-1.5">
+                  <AlertTriangle className="w-3 h-3 flex-shrink-0" />
+                  Sign above to enable submission for QC review
+                </p>
+              )}
+
+              {submitError && (
+                <p className="text-[11px] text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                  {submitError}
+                </p>
+              )}
+
+              <Button
+                onClick={handleSubmitForQc}
+                disabled={!techSig || submitting}
+                className="w-full gap-2 bg-purple-600 hover:bg-purple-700 text-white"
+              >
+                <Send className="w-4 h-4" />
+                {submitting ? 'Submitting...' : 'Submit for QC Review'}
+              </Button>
+            </Card>
+          )}
+
+          {/* QC DECISION PANEL — only shown to QC-role users */}
+          {!isLocked && ['submitted', 'under_qc'].includes(task.status) && canApproveQc && (
+            <Card className="p-6 border-purple-300 bg-purple-50/50 space-y-4">
+              <h3 className="text-[10px] font-bold uppercase tracking-[0.12em] text-purple-700 flex items-center gap-2">
                 <ShieldCheck className="w-3.5 h-3.5" /> Quality Control Review
               </h3>
-              <div className="space-y-3">
-                <div>
-                  <Label className="text-xs text-muted-foreground mb-1.5 block">Review Comments</Label>
-                  <Textarea
-                    placeholder="Provide feedback, findings, or approval notes..."
-                    value={qcComment}
-                    onChange={e => setQcComment(e.target.value)}
-                    className="text-xs min-h-[80px] resize-none"
-                  />
-                  {!qcComment && (
-                    <p className="text-[10px] text-muted-foreground mt-1">Comment required to reject</p>
-                  )}
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    onClick={() => handleQcSubmit('approved')}
-                    className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm"
-                    disabled={qcMutation.isPending}
-                  >
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Approve
-                  </Button>
-                  <Button
-                    onClick={() => handleQcSubmit('rejected')}
-                    variant="destructive"
-                    className="gap-1.5 text-sm"
-                    disabled={!qcComment || qcMutation.isPending}
-                  >
-                    Reject
-                  </Button>
-                </div>
+
+              {/* QC Signature */}
+              <SignaturePad
+                label="QC Approval Signature"
+                existingSignature={supervisorSig}
+                onSave={handleSaveSupervisorSignature}
+                readOnly={false}
+              />
+
+              {!supervisorSig && (
+                <p className="text-[11px] text-purple-700 bg-purple-50 border border-purple-200 rounded-lg px-3 py-2 flex items-center gap-1.5">
+                  <Pen className="w-3 h-3 flex-shrink-0" />
+                  Sign above before you can approve this task
+                </p>
+              )}
+
+              {sigError && (
+                <p className="text-[11px] text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                  {sigError}
+                </p>
+              )}
+
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1.5 block">Review Comments</Label>
+                <Textarea
+                  placeholder="Provide feedback, findings, or approval notes..."
+                  value={qcComment}
+                  onChange={e => setQcComment(e.target.value)}
+                  className="text-xs min-h-[80px] resize-none"
+                />
+                {!qcComment && (
+                  <p className="text-[10px] text-muted-foreground mt-1">Comment required to reject</p>
+                )}
               </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  onClick={() => handleQcSubmit('approved')}
+                  className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm"
+                  disabled={qcMutation.isPending || !supervisorSig}
+                  title={!supervisorSig ? "QC signature required" : ""}
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Approve
+                </Button>
+                <Button
+                  onClick={() => handleQcSubmit('rejected')}
+                  variant="destructive"
+                  className="gap-1.5 text-sm"
+                  disabled={!qcComment || qcMutation.isPending}
+                >
+                  Reject
+                </Button>
+              </div>
+            </Card>
+          )}
+
+          {/* QC submitted panel — shown to technicians when submitted */}
+          {!isLocked && ['submitted', 'under_qc'].includes(task.status) && !canApproveQc && (
+            <Card className="p-6 border-purple-200 bg-purple-50/30 text-center">
+              <div className="w-12 h-12 rounded-full bg-purple-100 border border-purple-200 flex items-center justify-center mx-auto mb-3">
+                <ShieldCheck className="w-6 h-6 text-purple-600" />
+              </div>
+              <p className="text-sm font-semibold text-purple-800">Awaiting QC Review</p>
+              <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                This task has been submitted and is pending quality control review by a supervisor or engineer.
+              </p>
             </Card>
           )}
 
@@ -524,6 +667,7 @@ export default function TaskDetail() {
                 { label: 'Priority', value: task.priority, color: task.priority === 'high' ? 'text-red-600' : task.priority === 'medium' ? 'text-amber-600' : 'text-blue-600' },
                 { label: 'Est. Hours', value: task.estimatedHours ? `${task.estimatedHours}h` : '—' },
                 { label: 'Logged', value: formatMinutes(task.totalMinutes) },
+                { label: 'Signatures', value: signatures.length > 0 ? `${signatures.length} on file` : 'None' },
               ].map(item => (
                 <div key={item.label} className="flex justify-between items-center py-3 border-b border-border last:border-0">
                   <span className="text-muted-foreground font-medium">{item.label}</span>
@@ -532,6 +676,7 @@ export default function TaskDetail() {
               ))}
             </div>
           </Card>
+
         </div>
       </div>
     </div>

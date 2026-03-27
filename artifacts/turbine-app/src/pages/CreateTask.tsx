@@ -23,6 +23,7 @@ import {
   type TurbineTemplate, type TurbineModel, type TurbineSectionSlug,
 } from "@/lib/turbineTemplates"
 import { getQcContext } from "@/lib/qcRules"
+import { usePermissions } from "@/hooks/usePermissions"
 
 // ─── Section name mapping: diagram slug → DB section name per model ──────────
 const SECTION_NAME_MAP: Record<TurbineModel, Record<TurbineSectionID, string>> = {
@@ -315,6 +316,7 @@ export default function CreateTask() {
   const searchParams = React.useMemo(() => new URLSearchParams(searchStr), [searchStr])
   const { toast } = useToast()
 
+  const { canCreateTask } = usePermissions()
   const { data: users } = useListUsers()
   const { data: assets } = useListAssets()
   const createTaskMutation = useCreateTask()
@@ -472,6 +474,29 @@ export default function CreateTask() {
             <span className="font-semibold text-primary">{selectedComponent.name}</span>
           </>
         )}
+      </div>
+    )
+  }
+
+  if (!canCreateTask) {
+    return (
+      <div className="max-w-lg mx-auto mt-24 text-center space-y-6">
+        <div className="w-16 h-16 rounded-full bg-muted border border-border flex items-center justify-center mx-auto">
+          <Lock className="w-7 h-7 text-muted-foreground" />
+        </div>
+        <div>
+          <h2 className="text-xl font-display font-bold text-foreground">Access Restricted</h2>
+          <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
+            Task creation is only available to engineers, supervisors, and site managers.<br />
+            Contact your supervisor if you need a work order created.
+          </p>
+        </div>
+        <button
+          onClick={() => setLocation('/tasks')}
+          className="text-sm text-primary hover:underline font-medium"
+        >
+          ← Back to Task List
+        </button>
       </div>
     )
   }
