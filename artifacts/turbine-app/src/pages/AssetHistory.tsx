@@ -4,7 +4,7 @@ import { Card, Badge } from "@/components/ui/core"
 import { Wrench, Clock, AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, TrendingUp, Layers } from "lucide-react"
 import { format, formatDistanceToNow } from "date-fns"
 import { motion, AnimatePresence } from "framer-motion"
-import { useLocation } from "wouter"
+import { useLocation, useSearch } from "wouter"
 import { cn } from "@/lib/utils"
 
 const SECTION_COLORS: Record<string, { color: string; bg: string; border: string }> = {
@@ -23,12 +23,15 @@ export default function AssetHistory() {
   const { data: assets } = useListAssets()
   const defaultAsset = assets?.[0]
   const [, setLocation] = useLocation()
+  const searchStr = useSearch()
+  const searchParams = React.useMemo(() => new URLSearchParams(searchStr), [searchStr])
 
   const { data: sections } = useListSections(defaultAsset?.id ?? 0, {
     query: { enabled: !!defaultAsset?.id }
   })
 
-  const [activeSectionId, setActiveSectionId] = React.useState<number | null>(null)
+  const initSectionId = searchParams.get('sectionId') ? parseInt(searchParams.get('sectionId')!) : null
+  const [activeSectionId, setActiveSectionId] = React.useState<number | null>(initSectionId)
   React.useEffect(() => {
     if (sections?.length && !activeSectionId) setActiveSectionId(sections[0].id)
   }, [sections, activeSectionId])

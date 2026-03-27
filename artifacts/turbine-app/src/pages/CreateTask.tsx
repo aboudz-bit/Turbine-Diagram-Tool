@@ -1,5 +1,5 @@
 import * as React from "react"
-import { useLocation } from "wouter"
+import { useLocation, useSearch } from "wouter"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   ArrowRight, CheckCircle2, ChevronLeft, Wrench, MapPin,
@@ -49,6 +49,8 @@ const SECTION_META: Record<TurbineSectionID, { icon: React.ElementType; color: s
 
 export default function CreateTask() {
   const [, setLocation] = useLocation()
+  const searchStr = useSearch()
+  const searchParams = React.useMemo(() => new URLSearchParams(searchStr), [searchStr])
 
   const { data: users } = useListUsers()
   const { data: assets } = useListAssets()
@@ -57,7 +59,9 @@ export default function CreateTask() {
   const defaultAsset = assets?.[0]
 
   const [step, setStep] = React.useState(1)
-  const [diagramSectionId, setDiagramSectionId] = React.useState<TurbineSectionID | null>(null)
+  const [diagramSectionId, setDiagramSectionId] = React.useState<TurbineSectionID | null>(
+    (searchParams.get('section') as TurbineSectionID) || null
+  )
 
   const { data: sections } = useListSections(defaultAsset?.id ?? 0, {
     query: { enabled: !!defaultAsset?.id }
@@ -73,14 +77,18 @@ export default function CreateTask() {
     query: { enabled: !!selectedDbSection?.id }
   })
 
-  const [selectedStageId, setSelectedStageId] = React.useState<number | null>(null)
+  const [selectedStageId, setSelectedStageId] = React.useState<number | null>(
+    searchParams.get('stageId') ? parseInt(searchParams.get('stageId')!) : null
+  )
   const selectedStage = stages?.find(s => s.id === selectedStageId) || null
 
   const { data: components } = useListComponents(selectedStageId ?? 0, {
     query: { enabled: !!selectedStageId }
   })
 
-  const [selectedComponentId, setSelectedComponentId] = React.useState<number | null>(null)
+  const [selectedComponentId, setSelectedComponentId] = React.useState<number | null>(
+    searchParams.get('componentId') ? parseInt(searchParams.get('componentId')!) : null
+  )
   const selectedComponent = components?.find(c => c.id === selectedComponentId) || null
 
   const [formData, setFormData] = React.useState({
