@@ -4,7 +4,8 @@ import { format, formatDistanceToNow } from "date-fns"
 import {
   CheckCircle2, Clock, Pause, Play, AlertCircle,
   ShieldCheck, ChevronRight, Lock, ChevronLeft,
-  Calendar, User, Gauge, Timer, Send
+  Calendar, User, Gauge, Timer, Send, ShieldAlert,
+  AlertTriangle, ChevronDown, ChevronUp,
 } from "lucide-react"
 import {
   useGetTask,
@@ -15,6 +16,26 @@ import {
 } from "@workspace/api-client-react"
 import { Card, Button, Badge, Label, Textarea, Input } from "@/components/ui/core"
 import { cn } from "@/lib/utils"
+import { getQcContext, type QcContext } from "@/lib/qcRules"
+import type { TurbineModel, TurbineSectionSlug } from "@/lib/turbineTemplates"
+
+// Derive turbine model from asset name
+function getTurbineModel(assetName?: string | null): TurbineModel | null {
+  if (!assetName) return null
+  if (assetName.includes('SGT-9000HL')) return 'SGT-9000HL'
+  if (assetName.includes('SGT-8000H')) return 'SGT-8000H'
+  return null
+}
+
+// Reverse map section name → slug
+const SECTION_SLUG_BY_NAME: Record<string, TurbineSectionSlug> = {
+  'Compressor': 'compressor',
+  'Mid Frame': 'mid-frame',
+  'Combustion Chamber': 'mid-frame',
+  'Turbine': 'turbine',
+  'Turbine Exit Cylinder': 'exit-cylinder',
+  'Exhaust Diffuser': 'exit-cylinder',
+}
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
   draft:      { label: 'Draft',       color: 'text-slate-600',   bg: 'bg-slate-100',  border: 'border-slate-300' },
@@ -38,6 +59,84 @@ const PRIORITY_COLORS = {
 function formatMinutes(mins?: number | null) {
   if (!mins) return '0h 0m'
   return `${Math.floor(mins / 60)}h ${mins % 60}m`
+}
+
+function QcRulesDetailPanel({ qcContext, turbineModel }: { qcContext: QcContext; turbineModel: TurbineModel }) {
+  const [open, setOpen] = React.useState(false)
+  const mandatoryCount = qcContext.rules.filter(r => r.mandatory).length
+
+  return (
+    <Card className="overflow-hidden">
+      {/* Warning banner */}
+      {qcContext.warning && (
+        <div className={`flex items-start gap-3 px-5 py-3.5 border-b border-border ${
+          qcContext.isCriticalZone ? 'bg-red-50' : 'bg-amber-50'
+        }`}>
+          {qcContext.isCriticalZone
+            ? <ShieldAlert className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+            : <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />}
+          <div className="flex-1 min-w-0">
+            {qcContext.isCriticalZone && (
+              <p className="text-[10px] font-bold uppercase tracking-wide text-red-700 mb-0.5">
+                Critical Zone — {turbineModel}
+              </p>
+            )}
+            <p className={`text-xs font-medium ${qcContext.isCriticalZone ? 'text-red-700' : 'text-amber-800'}`}>
+              {qcContext.warning}
+            </p>
+            {qcContext.oemProcedure && (
+              <p className={`text-[10px] mt-0.5 font-mono ${qcContext.isCriticalZone ? 'text-red-600' : 'text-amber-700'}`}>
+                OEM Procedure: {qcContext.oemProcedure} — mandatory, overrides all templates
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Collapsible rules header */}
+      <button
+        className="w-full flex items-center gap-3 px-5 py-4 bg-white hover:bg-muted/30 transition-colors text-left"
+        onClick={() => setOpen(!open)}
+      >
+        <ShieldAlert className="w-4 h-4 text-primary flex-shrink-0" />
+        <div className="flex-1 text-left">
+          <span className="text-xs font-semibold text-foreground">{turbineModel} QC Requirements</span>
+          <span className="text-[10px] text-muted-foreground ml-2">
+            {mandatoryCount} mandatory · {qcContext.rules.length - mandatoryCount} recommended
+          </span>
+        </div>
+        <span className="text-[10px] font-mono text-muted-foreground mr-1">{qcContext.oemProcedure}</span>
+        {open ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
+      </button>
+
+      {open && (
+        <div className="px-5 pb-4 pt-1 space-y-2 border-t border-border">
+          {qcContext.rules.map((rule) => (
+            <div key={rule.id} className={`flex items-start gap-2.5 p-3 rounded-xl ${
+              rule.mandatory ? 'bg-primary/5 border border-primary/20' : 'bg-muted/40'
+            }`}>
+              <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                rule.mandatory ? 'bg-primary text-white' : 'bg-muted border border-border text-muted-foreground'
+              }`}>
+                {rule.mandatory
+                  ? <ShieldAlert className="w-3 h-3" />
+                  : <CheckCircle2 className="w-3 h-3" />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-foreground leading-snug">{rule.label}</p>
+                {rule.detail && <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{rule.detail}</p>}
+              </div>
+              {rule.mandatory && (
+                <span className="text-[9px] font-bold uppercase text-primary bg-primary/10 px-1.5 py-0.5 rounded tracking-wide flex-shrink-0">
+                  REQ
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
+  )
 }
 
 export default function TaskDetail() {
@@ -69,6 +168,10 @@ export default function TaskDetail() {
   const status = STATUS_CONFIG[task.status] || STATUS_CONFIG.draft
   const isLocked = task.status === 'approved'
   const priorityColor = PRIORITY_COLORS[task.priority as keyof typeof PRIORITY_COLORS] || 'bg-slate-400'
+
+  const turbineModel = getTurbineModel(task.assetName)
+  const sectionSlug = task.sectionName ? SECTION_SLUG_BY_NAME[task.sectionName] ?? null : null
+  const qcContext = turbineModel && sectionSlug ? getQcContext(turbineModel, sectionSlug) : null
 
   const handleStart = async () => {
     await startMutation.mutateAsync({ taskId, data: {} })
@@ -182,6 +285,9 @@ export default function TaskDetail() {
               {task.description || <span className="text-muted-foreground italic">No description provided</span>}
             </div>
           </Card>
+
+          {/* QC Requirements panel (model-aware) */}
+          {qcContext && <QcRulesDetailPanel qcContext={qcContext} turbineModel={turbineModel!} />}
 
           {/* Time Log */}
           <Card className="p-6">

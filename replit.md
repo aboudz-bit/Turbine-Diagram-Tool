@@ -47,7 +47,11 @@ artifacts-monorepo/
 - **Task Lifecycle**: draft → assigned → in_progress → paused → submitted → under_qc → approved/rejected
 - **Time Tracking**: Start/pause/resume time entries per task with elapsed time display in table format
 - **QC Review Flow**: Approve/reject with mandatory comments for rejection; approved tasks show locked read-only state
-- **Multi-step Create Task**: Two-panel layout — turbine diagram (left) + location details panel (right). Section → Stage → Component flow with animated reveals. Section metadata shown per section type. Prominent live breadcrumb.
+- **Multi-step Create Task (turbine-type-aware)**: Turbine model selector (SGT-9000HL / SGT-8000H) → diagram click → stage/component flow. Model-aware section name resolution (e.g. "Combustion Chamber" for SGT-8000H vs "Mid Frame" for SGT-9000HL). Animated guided panel with sub-steps. Live breadcrumb.
+- **OEM Template Library**: `src/lib/turbineTemplates.ts` — 8 realistic inspection templates (TBC inspection, seal clearance, borescope, combustor, compressor fouling, exhaust) with checklists, measurements, tolerances, and risk levels. Template picker in step 2 auto-fills task title + description.
+- **Turbine-Aware QC Rules**: `src/lib/qcRules.ts` — per-model per-section QC rules with mandatory/recommended classification, OEM procedure references (SI-2241-HL, SA-4410, etc.), and critical zone flagging. Shown as collapsible panel in both CreateTask (step 2) and TaskDetail.
+- **Critical Zone Detection**: SGT-9000HL Turbine section is marked CRITICAL — red banner + engineer sign-off warning. SGT-8000H shows amber warnings.
+- **Assets**: Two turbine assets in DB — SGT-9000HL Unit 1 (id=1, 4 sections, 5 stages) + SGT-8000H Unit 1 (id=34, 4 sections, 4 stages, 3 turbine stages)
 - **Dashboard**: Operational hierarchy — alert strips (overdue/pending QC), 4 KPI cards (Total/In Progress/Pending QC/Overdue), Active Work and Requires Action panels with priority stripes, Tasks by Section bar chart, Technician Workload table with avatar initials.
 - **Task List**: Filterable list with priority color stripes, status badges, technician avatars, hours, deadlines
 - **Task Detail**: Structured header with status color strip, task meta grid (assignee/deadline/priority/estimated hours), table-style time log, QC history timeline, locked state for approved tasks
