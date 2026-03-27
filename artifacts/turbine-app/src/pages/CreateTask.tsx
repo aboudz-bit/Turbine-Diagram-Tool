@@ -381,6 +381,16 @@ export default function CreateTask() {
     return getQcContext(turbineModel, diagramSectionId as TurbineSectionSlug)
   }, [turbineModel, diagramSectionId])
 
+  // ── Form data — declared BEFORE the deadline useEffect that reads formData.priority ──
+  const [formData, setFormData] = React.useState({
+    title: '',
+    description: '',
+    priority: 'medium' as 'low' | 'medium' | 'high',
+    estimatedHours: '',
+    deadline: '',
+    assignedToId: '',
+  })
+
   // ── Deadline suggestion ──
   const [deadlineSuggestion, setDeadlineSuggestion] = React.useState<{
     suggestedDurationHours: number;
@@ -398,7 +408,7 @@ export default function CreateTask() {
     const params = new URLSearchParams({
       assetId: String(selectedAsset.id),
       sectionId: String(selectedDbSection.id),
-      priority: formData?.priority ?? 'medium',
+      priority: formData.priority,
     })
     if (selectedStageId) params.set('stageId', String(selectedStageId))
     const controller = new AbortController()
@@ -412,17 +422,7 @@ export default function CreateTask() {
       .catch(() => {})
     return () => controller.abort()
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedAsset?.id, selectedDbSection?.id, selectedStageId, formData?.priority])
-
-  // ── Form data ──
-  const [formData, setFormData] = React.useState({
-    title: '',
-    description: '',
-    priority: 'medium' as 'low' | 'medium' | 'high',
-    estimatedHours: '',
-    deadline: '',
-    assignedToId: '',
-  })
+  }, [selectedAsset?.id, selectedDbSection?.id, selectedStageId, formData.priority])
 
   const handleSectionSelect = (id: TurbineSectionID) => {
     setDiagramSectionId(id)
