@@ -10,6 +10,7 @@ import Tasks from "@/pages/Tasks";
 import TaskDetail from "@/pages/TaskDetail";
 import CreateTask from "@/pages/CreateTask";
 import AssetHistory from "@/pages/AssetHistory";
+import Analytics from "@/pages/Analytics";
 import NotFound from "@/pages/not-found";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import * as React from "react";
@@ -38,6 +39,7 @@ function Router() {
         <Route path="/tasks/:id" component={TaskDetail} />
         <Route path="/create-task" component={CreateTask} />
         <Route path="/history" component={AssetHistory} />
+        <Route path="/analytics" component={Analytics} />
         <Route component={NotFound} />
       </Switch>
     </AppLayout>

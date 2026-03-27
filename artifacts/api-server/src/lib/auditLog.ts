@@ -16,6 +16,13 @@ const ACTION_LABELS: Record<string, string> = {
   attachment_uploaded: "Attachment uploaded",
   attachment_deleted: "Attachment deleted",
   notification_created: "Notification sent",
+  // Enterprise upgrade actions
+  checklist_created: "Checklist created",
+  checklist_item_updated: "Checklist item updated",
+  deadline_suggested: "Deadline suggested",
+  qr_scanned: "QR code scanned",
+  reminder_sent: "Reminder sent",
+  integrity_check: "Integrity check performed",
 };
 
 export function getActionLabel(action: string): string {

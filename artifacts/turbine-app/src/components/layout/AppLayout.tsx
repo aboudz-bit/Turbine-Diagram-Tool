@@ -1,6 +1,6 @@
 import * as React from "react"
 import { Link, useLocation } from "wouter"
-import { LayoutDashboard, ListTodo, PlusCircle, History, Settings, Activity, LogOut } from "lucide-react"
+import { LayoutDashboard, ListTodo, PlusCircle, History, Settings, Activity, LogOut, BarChart2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AnimatePresence, motion } from "framer-motion"
 import { useAuth } from "@/hooks/useAuth"
@@ -11,6 +11,7 @@ const ALL_NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard, requireCreate: false },
   { href: "/tasks", label: "Task List", icon: ListTodo, requireCreate: false },
   { href: "/create-task", label: "Create Task", icon: PlusCircle, requireCreate: true },
+  { href: "/analytics", label: "Analytics", icon: BarChart2, requireCreate: false },
   { href: "/history", label: "Asset History", icon: History, requireCreate: false },
 ]
 

@@ -381,6 +381,39 @@ export default function CreateTask() {
     return getQcContext(turbineModel, diagramSectionId as TurbineSectionSlug)
   }, [turbineModel, diagramSectionId])
 
+  // ── Deadline suggestion ──
+  const [deadlineSuggestion, setDeadlineSuggestion] = React.useState<{
+    suggestedDurationHours: number;
+    suggestedDeadline: string;
+    confidence: string;
+    basedOnSamples: number;
+  } | null>(null)
+
+  // Fetch deadline suggestion when location + priority changes
+  React.useEffect(() => {
+    if (!selectedAsset || !selectedDbSection) {
+      setDeadlineSuggestion(null)
+      return
+    }
+    const params = new URLSearchParams({
+      assetId: String(selectedAsset.id),
+      sectionId: String(selectedDbSection.id),
+      priority: formData?.priority ?? 'medium',
+    })
+    if (selectedStageId) params.set('stageId', String(selectedStageId))
+    const controller = new AbortController()
+    const token = localStorage.getItem('turbine_auth_token')
+    fetch(`/api/deadline/suggest?${params}`, {
+      signal: controller.signal,
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setDeadlineSuggestion(data) })
+      .catch(() => {})
+    return () => controller.abort()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAsset?.id, selectedDbSection?.id, selectedStageId, formData?.priority])
+
   // ── Form data ──
   const [formData, setFormData] = React.useState({
     title: '',
@@ -1037,6 +1070,25 @@ export default function CreateTask() {
                       value={formData.deadline}
                       onChange={e => setFormData({ ...formData, deadline: e.target.value })}
                     />
+                    {deadlineSuggestion && (
+                      <button
+                        type="button"
+                        className="mt-1.5 w-full text-left px-2.5 py-1.5 rounded-lg bg-sky-50 border border-sky-200 text-[11px] text-sky-800 hover:bg-sky-100 transition-colors"
+                        onClick={() => {
+                          const d = new Date(deadlineSuggestion.suggestedDeadline)
+                          const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
+                          setFormData(prev => ({
+                            ...prev,
+                            deadline: local,
+                            estimatedHours: prev.estimatedHours || String(deadlineSuggestion.suggestedDurationHours),
+                          }))
+                        }}
+                      >
+                        <span className="font-semibold">Suggested: {deadlineSuggestion.suggestedDurationHours}h</span>
+                        {' '}based on {deadlineSuggestion.confidence === 'historical' ? `${deadlineSuggestion.basedOnSamples} historical records` : 'engineering rules'}
+                        <span className="text-sky-500 ml-1">— click to apply</span>
+                      </button>
+                    )}
                   </div>
 
                   <div className="pt-2">

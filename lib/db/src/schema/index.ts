@@ -5,3 +5,4 @@ export * from "./signatures";
 export * from "./notifications";
 export * from "./audit";
 export * from "./attachments";
+export * from "./checklists";

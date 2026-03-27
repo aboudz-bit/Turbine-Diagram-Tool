@@ -1,5 +1,6 @@
 import app from "./app";
 import { logger } from "./lib/logger";
+import { startReminderEngine, stopReminderEngine } from "./services/reminderEngine";
 
 process.on("uncaughtException", (err) => {
   logger.error({ err }, "Uncaught exception — server will continue");
@@ -30,4 +31,17 @@ app.listen(port, (err) => {
   }
 
   logger.info({ port }, "Server listening");
+
+  // Start the Smart Reminder Engine (background deadline/overdue scanner)
+  startReminderEngine();
+});
+
+// Graceful shutdown
+process.on("SIGTERM", () => {
+  stopReminderEngine();
+  process.exit(0);
+});
+process.on("SIGINT", () => {
+  stopReminderEngine();
+  process.exit(0);
 });
