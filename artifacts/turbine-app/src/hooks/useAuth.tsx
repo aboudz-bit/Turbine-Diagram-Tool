@@ -1,5 +1,6 @@
 import * as React from "react";
 import { setAuthTokenGetter } from "@workspace/api-client-react";
+import { clearQueryCache } from "@/lib/queryClient";
 
 export interface AuthUser {
   id: number;
@@ -163,6 +164,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     localStorage.setItem(TOKEN_KEY, data.token);
     localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+    clearQueryCache();
     setToken(data.token);
     setUser(data.user);
   }, []);

@@ -318,8 +318,14 @@ export default function CreateTask() {
 
   const { canCreateTask } = usePermissions()
   const { data: users } = useListUsers()
-  const { data: assets } = useListAssets()
+  const { data: assets, isLoading: assetsLoading, isError: assetsError } = useListAssets({
+    query: { refetchOnMount: 'always', staleTime: 0 },
+  })
   const createTaskMutation = useCreateTask()
+
+  React.useEffect(() => {
+    console.log('[CreateTask] assets state:', assets, 'loading:', assetsLoading, 'error:', assetsError)
+  }, [assets, assetsLoading, assetsError])
 
   // ── Turbine selection (replaces hardcoded defaultAsset) ──
   const [selectedAsset, setSelectedAsset] = React.useState<Asset | null>(null)
@@ -563,6 +569,22 @@ export default function CreateTask() {
                   )}
                 </div>
 
+                {assetsLoading && (
+                  <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary" />
+                    Loading turbine units…
+                  </div>
+                )}
+                {assetsError && !assetsLoading && (
+                  <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-xs text-destructive">
+                    Failed to load turbine units. Check your connection and refresh the page.
+                  </div>
+                )}
+                {!assetsLoading && !assetsError && (assets ?? []).length === 0 && (
+                  <div className="py-4 text-sm text-muted-foreground">
+                    No turbine units found in the system.
+                  </div>
+                )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {(assets ?? []).map((asset) => {
                     const modelInfo = TURBINE_MODELS.find(m => m.model === asset.model)
