@@ -33,6 +33,7 @@ export const taskSelectFields = {
   deadline: tasksTable.deadline,
   priority: tasksTable.priority,
   status: tasksTable.status,
+  version: tasksTable.version,
   createdAt: tasksTable.createdAt,
   updatedAt: tasksTable.updatedAt,
 };

@@ -40,6 +40,7 @@ export const tasksTable = pgTable("tasks", {
   startedAt: timestamp("started_at"),
   submittedAt: timestamp("submitted_at"),
   completedAt: timestamp("completed_at"),
+  version: integer("version").notNull().default(1),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

@@ -35,7 +35,8 @@ export function validateQuery(schema: Schema) {
       });
       return;
     }
-    req.query = result.data as Record<string, string>;
+    // Express 5: req.query is read-only, so store parsed data on a custom property
+    (req as unknown as Record<string, unknown>).validatedQuery = result.data;
     next();
   };
 }

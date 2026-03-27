@@ -28,9 +28,10 @@ router.get(
   validateQuery(ListTasksQueryParams),
   async (req, res): Promise<void> => {
     try {
-      const { status, assignedTo, sectionId } = req.query;
-      const limit = Math.min(parseInt((req.query as Record<string, string>).limit || "50", 10), 200);
-      const offset = parseInt((req.query as Record<string, string>).offset || "0", 10);
+      const query = (req as unknown as Record<string, unknown>).validatedQuery as Record<string, unknown> ?? req.query;
+      const { status, assignedTo, sectionId } = query as Record<string, string>;
+      const limit = Math.min(Number(query.limit) || 50, 200);
+      const offset = Number(query.offset) || 0;
 
       const conditions = [];
       if (status && status !== "overdue")
@@ -220,6 +221,7 @@ router.patch(
     try {
       const taskId = parseInt(req.params.taskId as string, 10);
       const status = req.body.status as "draft" | "assigned" | "in_progress" | "paused" | "submitted" | "under_qc" | "approved" | "rejected" | "revision_needed" | "overdue";
+      const version = req.body.version as number;
 
       const [existing] = await db
         .select()
@@ -248,14 +250,24 @@ router.patch(
         return;
       }
 
-      await db
+      // Optimistic locking: only update if version matches
+      const [updated] = await db
         .update(tasksTable)
         .set({
           status,
+          version: existing.version + 1,
           submittedAt: status === "submitted" ? new Date() : undefined,
           updatedAt: new Date(),
         })
-        .where(eq(tasksTable.id, taskId));
+        .where(and(eq(tasksTable.id, taskId), eq(tasksTable.version, version)))
+        .returning();
+
+      if (!updated) {
+        res.status(409).json({
+          error: "Task was modified by another user. Please refresh and try again.",
+        });
+        return;
+      }
 
       const full = await buildTaskRow(taskId);
       res.json(full);

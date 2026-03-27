@@ -109,6 +109,7 @@ export interface Task {
   priority: TaskPriority;
   status: TaskStatus;
   totalMinutes?: number;
+  version: number;
   createdAt: string;
   updatedAt?: string;
 }
@@ -236,6 +237,7 @@ export const UpdateTaskStatusInputStatus = {
 
 export interface UpdateTaskStatusInput {
   status: UpdateTaskStatusInputStatus;
+  version: number;
   pauseReason?: string;
   qcComment?: string;
 }

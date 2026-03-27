@@ -9,6 +9,7 @@ import type { UpdateTaskStatusInputStatus } from "./updateTaskStatusInputStatus"
 
 export interface UpdateTaskStatusInput {
   status: UpdateTaskStatusInputStatus;
+  version: number;
   pauseReason?: string;
   qcComment?: string;
 }

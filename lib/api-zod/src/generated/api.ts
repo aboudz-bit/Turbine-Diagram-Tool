@@ -149,6 +149,7 @@ export const GetComponentHistoryResponse = zod.object({
         "overdue",
       ]),
       totalMinutes: zod.number().optional(),
+      version: zod.number(),
       createdAt: zod.date(),
       updatedAt: zod.date().optional(),
     }),
@@ -216,6 +217,7 @@ export const ListTasksResponse = zod.object({
         "overdue",
       ]),
       totalMinutes: zod.number().optional(),
+      version: zod.number(),
       createdAt: zod.date(),
       updatedAt: zod.date().optional(),
     }),
@@ -281,6 +283,7 @@ export const GetTaskResponse = zod
       "overdue",
     ]),
     totalMinutes: zod.number().optional(),
+    version: zod.number(),
     createdAt: zod.date(),
     updatedAt: zod.date().optional(),
   })
@@ -350,6 +353,7 @@ export const UpdateTaskStatusBody = zod.object({
     "revision_needed",
     "overdue",
   ]),
+  version: zod.number(),
   pauseReason: zod.string().optional(),
   qcComment: zod.string().optional(),
 });
@@ -388,6 +392,7 @@ export const UpdateTaskStatusResponse = zod.object({
     "overdue",
   ]),
   totalMinutes: zod.number().optional(),
+  version: zod.number(),
   createdAt: zod.date(),
   updatedAt: zod.date().optional(),
 });

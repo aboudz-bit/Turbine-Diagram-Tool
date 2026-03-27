@@ -595,13 +595,15 @@ components:
           enum: [draft, assigned, in_progress, paused, submitted, under_qc, approved, rejected, revision_needed, overdue]
         totalMinutes:
           type: integer
+        version:
+          type: integer
         createdAt:
           type: string
           format: date-time
         updatedAt:
           type: string
           format: date-time
-      required: [id, title, status, priority, createdAt]
+      required: [id, title, status, priority, version, createdAt]
 
     TaskListResponse:
       type: object
@@ -760,11 +762,13 @@ components:
         status:
           type: string
           enum: [draft, assigned, in_progress, paused, submitted, under_qc, approved, rejected, revision_needed, overdue]
+        version:
+          type: integer
         pauseReason:
           type: string
         qcComment:
           type: string
-      required: [status]
+      required: [status, version]
 
     StartTimeInput:
       type: object
