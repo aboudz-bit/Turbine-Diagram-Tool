@@ -441,14 +441,26 @@ export default function CreateTask() {
 
     try {
       const result = await createTaskMutation.mutateAsync({ data: payload })
-      console.log('Task created', result)
       toast({ title: 'Task created', description: `Work order #${result.id} has been created successfully.` })
       setLocation('/tasks')
     } catch (err) {
-      console.error('Failed to create task', err)
-      const message =
-        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
-        'An unexpected error occurred. Please try again.'
+      console.error('[CreateTask] Failed to create task', err)
+      // ApiError shape: err.data = parsed body, err.status = HTTP code
+      const apiErr = err as { data?: { error?: string; details?: Record<string, string[]> }; status?: number }
+      let message: string
+      if (apiErr?.data?.error) {
+        message = apiErr.data.error
+        if (apiErr.data.details) {
+          const fields = Object.entries(apiErr.data.details)
+            .map(([f, msgs]) => `${f}: ${(msgs as string[]).join(', ')}`)
+            .join('; ')
+          message += ` (${fields})`
+        }
+      } else if (!apiErr?.status) {
+        message = 'Server unavailable. Please check your connection and try again.'
+      } else {
+        message = 'An unexpected error occurred. Please try again.'
+      }
       toast({ title: 'Failed to create task', description: message, variant: 'destructive' })
     }
   }

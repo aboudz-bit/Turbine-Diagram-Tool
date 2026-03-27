@@ -229,7 +229,7 @@ export const ListTasksResponse = zod.object({
  * @summary Create a new task
  */
 export const CreateTaskBody = zod.object({
-  title: zod.string(),
+  title: zod.string().min(1, "Title is required"),
   description: zod.string().optional(),
   assetId: zod.number(),
   sectionId: zod.number(),
@@ -237,7 +237,7 @@ export const CreateTaskBody = zod.object({
   componentId: zod.number().optional(),
   assignedToId: zod.number().optional(),
   estimatedHours: zod.number().optional(),
-  deadline: zod.date().optional(),
+  deadline: zod.coerce.date().optional(),
   priority: zod.enum(["high", "medium", "low"]),
 });
 

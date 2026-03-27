@@ -8,6 +8,7 @@ import {
   signaturesTable,
   notificationsTable,
   attachmentsTable,
+  assetSectionsTable,
 } from "@workspace/db";
 import { eq, and, sql, isNull } from "drizzle-orm";
 import { logAuditEvent } from "../lib/auditLog";
@@ -133,6 +134,23 @@ router.post(
         priority,
       } = req.body;
 
+      req.log.info(
+        { userId: req.user?.id, role: req.user?.role, assetId, sectionId, stageId, componentId, assignedToId, priority },
+        "Creating task",
+      );
+
+      // Validate section belongs to the selected asset
+      if (sectionId) {
+        const [section] = await db
+          .select({ id: assetSectionsTable.id })
+          .from(assetSectionsTable)
+          .where(and(eq(assetSectionsTable.id, sectionId), eq(assetSectionsTable.assetId, assetId)));
+        if (!section) {
+          res.status(400).json({ error: "The selected section does not belong to the selected turbine unit." });
+          return;
+        }
+      }
+
       const [task] = await db
         .insert(tasksTable)
         .values({
@@ -188,8 +206,13 @@ router.post(
 
       res.status(201).json(full);
     } catch (err) {
-      req.log.error({ err }, "Failed to create task");
-      res.status(500).json({ error: "Internal server error" });
+      req.log.error({ err, body: req.body }, "Failed to create task");
+      const isDev = process.env.NODE_ENV !== "production";
+      res.status(500).json({
+        error: isDev
+          ? `Task creation failed: ${(err as Error)?.message ?? "unknown error"}`
+          : "Internal server error",
+      });
     }
   },
 );

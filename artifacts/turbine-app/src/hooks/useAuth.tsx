@@ -171,6 +171,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = React.useCallback(() => {
     clearStorage();
+    clearQueryCache();
     setToken(null);
     setUser(null);
   }, []);
