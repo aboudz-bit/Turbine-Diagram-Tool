@@ -222,6 +222,7 @@ export default function TaskDetail() {
   const [elapsedSecs, setElapsedSecs] = React.useState(0)
   const [uploadError, setUploadError] = React.useState('')
   const [uploading, setUploading] = React.useState(false)
+  const [actionError, setActionError] = React.useState('')
   const fileInputRef = React.useRef<HTMLInputElement>(null)
 
   React.useEffect(() => {
@@ -255,22 +256,44 @@ export default function TaskDetail() {
   const supervisorSig = signatures.find(s => s.signatureType === 'supervisor_qc_approval') ?? null
 
   // ── handlers ──────────────────────────────────────────────────────────────
+  const extractErrorMessage = (err: unknown, fallback: string): string => {
+    const apiData = err && typeof err === 'object' && 'data' in err
+      ? (err as { data?: { error?: string } }).data
+      : null
+    return apiData?.error || (err instanceof Error ? err.message : fallback)
+  }
+
   const handleStart = async () => {
-    await startMutation.mutateAsync({ taskId, data: {} })
-    refetch()
+    setActionError('')
+    try {
+      await startMutation.mutateAsync({ taskId, data: {} })
+      refetch()
+    } catch (err) {
+      setActionError(extractErrorMessage(err, 'Failed to start work'))
+    }
   }
 
   const handlePause = async () => {
     if (!pauseReason) return
-    await pauseMutation.mutateAsync({ taskId, data: { reason: pauseReason } })
-    setShowPauseModal(false)
-    setPauseReason('')
-    refetch()
+    setActionError('')
+    try {
+      await pauseMutation.mutateAsync({ taskId, data: { reason: pauseReason } })
+      setShowPauseModal(false)
+      setPauseReason('')
+      refetch()
+    } catch (err) {
+      setActionError(extractErrorMessage(err, 'Failed to pause work'))
+    }
   }
 
   const handleResume = async () => {
-    await resumeMutation.mutateAsync({ taskId })
-    refetch()
+    setActionError('')
+    try {
+      await resumeMutation.mutateAsync({ taskId })
+      refetch()
+    } catch (err) {
+      setActionError(extractErrorMessage(err, 'Failed to resume work'))
+    }
   }
 
   const handleStop = async () => {
@@ -351,8 +374,13 @@ export default function TaskDetail() {
       return
     }
     setSigError('')
-    await qcMutation.mutateAsync({ taskId, data: { decision, comments: qcComment } })
-    refetch()
+    setActionError('')
+    try {
+      await qcMutation.mutateAsync({ taskId, data: { decision, comments: qcComment } })
+      refetch()
+    } catch (err) {
+      setActionError(extractErrorMessage(err, `Failed to ${decision === 'approved' ? 'approve' : 'reject'} task`))
+    }
   }
 
   const canSubmit = ['in_progress', 'paused', 'revision_needed'].includes(task.status) && !task.activeTimeEntry
@@ -772,6 +800,13 @@ export default function TaskDetail() {
                 )}
               </div>
 
+              {actionError && (
+                <p className="text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mt-3 flex items-center gap-1.5">
+                  <AlertTriangle className="w-3 h-3 flex-shrink-0" />
+                  {actionError}
+                </p>
+              )}
+
               {showPauseModal && (
                 <div className="mt-4 p-4 border border-border rounded-lg bg-muted/30 space-y-3">
                   <Label className="text-xs text-muted-foreground">Pause Reason *</Label>
@@ -906,6 +941,13 @@ export default function TaskDetail() {
                   Reject
                 </Button>
               </div>
+
+              {actionError && (
+                <p className="text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mt-3 flex items-center gap-1.5">
+                  <AlertTriangle className="w-3 h-3 flex-shrink-0" />
+                  {actionError}
+                </p>
+              )}
             </Card>
           )}
 
