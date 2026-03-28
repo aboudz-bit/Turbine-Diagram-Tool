@@ -67,13 +67,13 @@ router.post("/escalation/escalate", async (req, res): Promise<void> => {
       .where(inArray(usersTable.role, ["site_manager", "supervisor"]));
 
     for (const mgr of managers) {
-      await createNotification({
-        userId: mgr.id,
+      await createNotification(
+        mgr.id,
         taskId,
-        type: "task_overdue",
-        title: `Escalation: "${task.title}" awaiting QC review`,
-        message: `Task #TSK-${String(taskId).padStart(4, "0")} has been waiting for QC review and requires immediate attention.`,
-      });
+        "task_overdue",
+        `Escalation: "${task.title}" awaiting QC review`,
+        `Task #TSK-${String(taskId).padStart(4, "0")} has been waiting for QC review and requires immediate attention.`,
+      );
     }
 
     res.json({

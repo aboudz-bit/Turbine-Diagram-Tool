@@ -117,7 +117,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <span className={cn("flex h-1.5 w-1.5 rounded-full",
               sseStatus === "connected" ? "bg-emerald-500 animate-pulse" :
               sseStatus === "connecting" ? "bg-amber-500 animate-pulse" :
-              "bg-emerald-500 animate-pulse"
+              "bg-slate-400"
             )} />
             {sseStatus === "connected" ? "Live" : sseStatus === "connecting" ? "Connecting..." : "System Online"}
           </div>

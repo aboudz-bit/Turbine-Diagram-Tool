@@ -31,6 +31,8 @@ import { SignaturePad } from "@/components/SignaturePad"
 import { TaskChecklist } from "@/components/TaskChecklist"
 import { useAuth } from "@/hooks/useAuth"
 import { PhotoAnnotation } from "@/components/PhotoAnnotation"
+import { BladeMap } from "@/components/BladeMap"
+import { MeasurementTrends, type MeasurementSeries } from "@/components/MeasurementTrends"
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 function getTurbineModel(assetName?: string | null): TurbineModel | null {
@@ -479,7 +481,7 @@ export default function TaskDetail() {
           <ChevronLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform duration-150" /> Back to Task List
         </button>
         <a
-          href={`/api/reports/task/${taskId}`}
+          href={`/api/tasks/${taskId}/report`}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors duration-150 px-3 py-1.5 rounded-lg border border-border hover:border-primary/30"
@@ -567,6 +569,23 @@ export default function TaskDetail() {
 
           {/* QC Requirements panel (model-aware) */}
           {qcContext && <QcRulesDetailPanel qcContext={qcContext} turbineModel={turbineModel!} />}
+
+          {/* Blade Map — shown when task has a stage with blade data */}
+          {task.stageName && task.bladeCountMin && (
+            <BladeMap
+              bladeCount={task.bladeCountMin}
+              stageLabel={`${task.assetName ?? 'Turbine'} — ${task.stageName}`}
+              readOnly={isLocked}
+            />
+          )}
+
+          {/* Measurement Trends — shown for component-level tasks */}
+          {task.componentName && (
+            <MeasurementTrends
+              componentLabel={`${task.componentName} (${task.stageName ?? task.sectionName ?? ''})`}
+              series={[]}
+            />
+          )}
 
           {/* Time Log */}
           <Card className="p-6">

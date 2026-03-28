@@ -3,8 +3,12 @@
  *
  * Clients connect via GET /events and receive live updates when
  * tasks change status, new comments appear, or QC decisions are made.
+ *
+ * Auth: Uses req.user from requireAuth middleware (Authorization header).
+ * For EventSource (which can't send headers), also supports ?token= query param.
  */
-import { Router, type Request, type Response } from "express";
+import { Router, type Request, type Response, type NextFunction } from "express";
+import jwt from "jsonwebtoken";
 
 const router = Router();
 
@@ -40,14 +44,43 @@ export function broadcastEvent(
 }
 
 /**
- * GET /events — SSE stream
+ * Middleware: authenticate SSE via query param token (fallback for EventSource).
+ * If req.user is already set by requireAuth, this is a no-op.
  */
-router.get("/events", (req: Request, res: Response) => {
-  const userId = (req as unknown as { userId?: number }).userId;
-  if (!userId) {
+function authenticateSSE(req: Request, res: Response, next: NextFunction): void {
+  // Already authenticated via Authorization header
+  if (req.user?.id) {
+    next();
+    return;
+  }
+
+  // Try query param token (EventSource can't send headers)
+  const token = req.query.token as string | undefined;
+  if (!token) {
     res.status(401).json({ error: "Authentication required" });
     return;
   }
+
+  try {
+    const secret = process.env.JWT_SECRET ?? "turbine-qc-dev-secret";
+    const payload = jwt.verify(token, secret) as Record<string, unknown>;
+    req.user = {
+      id: (payload.sub as number) ?? (payload.id as number),
+      name: payload.name as string,
+      email: payload.email as string,
+      role: payload.role as string,
+    };
+    next();
+  } catch {
+    res.status(401).json({ error: "Invalid or expired token" });
+  }
+}
+
+/**
+ * GET /events — SSE stream
+ */
+router.get("/events", authenticateSSE, (req: Request, res: Response) => {
+  const userId = req.user!.id;
 
   // Set SSE headers
   res.writeHead(200, {

@@ -29,6 +29,9 @@ const router: IRouter = Router();
 router.use(healthRouter);
 router.use(authRouter);
 
+// SSE — handles its own auth (query param token for EventSource)
+router.use(sseRouter);
+
 // Protected routes (auth required)
 router.use(requireAuth);
 router.use(assetsRouter);
@@ -50,6 +53,5 @@ router.use(permissionsRouter);
 router.use(integrationsRouter);
 router.use(reportsRouter);
 router.use(escalationRouter);
-router.use(sseRouter);
 
 export default router;
