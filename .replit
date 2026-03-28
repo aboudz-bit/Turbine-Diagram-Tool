@@ -31,4 +31,3 @@ channel = "stable-25_05"
 [userenv]
 
 [userenv.shared]
-JWT_SECRET = "deaba3189e118eebebe7c334ddae3d1e1730eefca2b28b513883ec7dda46fa24d8311d44872c9a1a9fb98c25a1a4fb69"
