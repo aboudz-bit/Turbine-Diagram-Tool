@@ -19,12 +19,18 @@ import checklistsRouter from "./checklists";
 import analyticsRouter from "./analytics";
 import permissionsRouter from "./permissions";
 import integrationsRouter from "./integrations";
+import reportsRouter from "./reports";
+import escalationRouter from "./escalation";
+import sseRouter from "./sse";
 
 const router: IRouter = Router();
 
 // Public routes (no auth required)
 router.use(healthRouter);
 router.use(authRouter);
+
+// SSE — handles its own auth (query param token for EventSource)
+router.use(sseRouter);
 
 // Protected routes (auth required)
 router.use(requireAuth);
@@ -45,5 +51,7 @@ router.use(checklistsRouter);
 router.use(analyticsRouter);
 router.use(permissionsRouter);
 router.use(integrationsRouter);
+router.use(reportsRouter);
+router.use(escalationRouter);
 
 export default router;
