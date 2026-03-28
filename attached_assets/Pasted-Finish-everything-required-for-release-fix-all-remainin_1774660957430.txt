@@ -1,0 +1,185 @@
+Finish everything required for release, fix all remaining bugs, run final validation, and publish the system.
+
+IMPORTANT:
+- This is the final release pass
+- Do not add new features
+- Do not refactor working architecture
+- Do not redesign UI
+- Only fix real remaining bugs, complete release blockers, validate, and publish
+
+MISSION:
+Take the current Turbine QC system from "almost ready" to fully published and live.
+
+==================================================
+PHASE 1 — FINAL BUG FIX PASS
+==================================================
+
+Find and fix any remaining real bugs in:
+- auth / login / logout / user switching
+- task creation
+- task detail
+- time tracking
+- signatures
+- notifications
+- attachments
+- audit log
+- dashboard
+- storage integration
+- reminder engine
+- route stability
+- error handling
+
+Focus especially on:
+1. no infinite spinners
+2. no silent failures
+3. no 401 when opening attachments
+4. no broken "mark all read"
+5. no stale login/loading state
+6. no task workflow regressions
+7. no crash when storage config is missing
+8. no crash when PostgreSQL reconnects
+9. no broken role restrictions
+10. no generic "unexpected error" when real error exists
+
+==================================================
+PHASE 2 — COMPLETE RELEASE BLOCKERS
+==================================================
+
+Ensure all release blockers are complete:
+
+1. Production env vars verified
+- DATABASE_URL
+- JWT_SECRET
+- PRIVATE_OBJECT_DIR
+- PUBLIC_OBJECT_SEARCH_PATHS
+- any frontend envs required
+
+2. Storage fully operational
+- upload works
+- preview/open works
+- delete works
+- metadata only saved after successful upload
+
+3. Database ready
+- schema fully applied
+- required enums present
+- backup taken before release
+
+4. Role security ready
+- technician blocked from create task
+- technician blocked from QC approve/reject
+- unauthorized actions return proper 401/403
+
+==================================================
+PHASE 3 — FINAL VALIDATION
+==================================================
+
+Run these exact validations and do not skip any:
+
+A. AUTH
+- login
+- logout
+- login as different user
+- repeat multiple times
+- no stale spinner
+- no restart needed
+
+B. CREATE TASK
+- create on SGT-9000HL
+- create on SGT-8000H
+- template flow works
+- deadline suggestion works
+- errors shown properly if invalid
+
+C. TASK WORKFLOW
+- assign
+- start
+- pause
+- resume
+- stop
+- sign as technician
+- submit
+- reject
+- revision_needed
+- resubmit
+- sign as supervisor
+- approve
+- confirm approved task is locked
+
+D. ATTACHMENTS
+- upload file
+- view file
+- reload page
+- switch user
+- same file visible
+- delete if allowed
+- no 401 on open
+- no crash
+
+E. NOTIFICATIONS
+- assignment notification
+- submit notification
+- reject notification
+- approve notification
+- bell works
+- mark one read works
+- mark all read works
+
+F. AUDIT LOG
+- shows timeline
+- shows actor names
+- shows timestamps
+- records all major actions
+
+G. HEALTH / STABILITY
+- /api/healthz stays 200
+- no HTML error pages from API
+- no crash after reminder scan
+- no crash after logout
+- no crash after upload attempts
+- no crash after DB reconnect
+
+==================================================
+PHASE 4 — PUBLISH
+==================================================
+
+After all fixes and validations pass:
+
+1. take a fresh DB backup
+2. merge final branch into main
+3. push main
+4. deploy
+5. verify live health endpoint
+6. run one live smoke test after publish
+
+==================================================
+OUTPUT REQUIRED
+==================================================
+
+When done, return exactly this:
+
+1. Bugs fixed
+- list each bug fixed
+- exact files changed
+
+2. Final validation results
+- PASS / FAIL per section:
+  - Auth
+  - Create Task
+  - Workflow
+  - Attachments
+  - Notifications
+  - Audit Log
+  - Stability
+
+3. Publish status
+- published or not published
+- live URL
+- health endpoint result
+
+4. Any remaining issues
+- only if real blockers still exist
+
+FINAL RULE:
+Do not stop at “ready”.
+Actually finish it, validate it, and publish it.

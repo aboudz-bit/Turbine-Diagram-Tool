@@ -433,16 +433,6 @@ router.patch(
   },
 );
 
-router.get("/users", async (req, res) => {
-  try {
-    const users = await db.select().from(usersTable).orderBy(usersTable.name);
-    res.json(users);
-  } catch (err) {
-    req.log.error({ err }, "Failed to list users");
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
-
 async function createOverdueNotification(taskId: number, assignedToId: number, title: string): Promise<void> {
   try {
     // Check if overdue notification was already sent for this task recently
