@@ -19,6 +19,9 @@ import checklistsRouter from "./checklists";
 import analyticsRouter from "./analytics";
 import permissionsRouter from "./permissions";
 import integrationsRouter from "./integrations";
+import reportsRouter from "./reports";
+import escalationRouter from "./escalation";
+import sseRouter from "./sse";
 
 const router: IRouter = Router();
 
@@ -45,5 +48,8 @@ router.use(checklistsRouter);
 router.use(analyticsRouter);
 router.use(permissionsRouter);
 router.use(integrationsRouter);
+router.use(reportsRouter);
+router.use(escalationRouter);
+router.use(sseRouter);
 
 export default router;

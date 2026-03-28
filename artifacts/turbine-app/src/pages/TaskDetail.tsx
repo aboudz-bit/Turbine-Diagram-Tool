@@ -7,7 +7,7 @@ import {
   Calendar, User, Gauge, Timer, Send, ShieldAlert,
   AlertTriangle, ChevronDown, ChevronUp, Pen,
   Square, Paperclip, History, Trash2, Upload,
-  FileText, ImageIcon,
+  FileText, ImageIcon, Printer, Camera,
 } from "lucide-react"
 import {
   useGetTask,
@@ -30,6 +30,7 @@ import { usePermissions } from "@/hooks/usePermissions"
 import { SignaturePad } from "@/components/SignaturePad"
 import { TaskChecklist } from "@/components/TaskChecklist"
 import { useAuth } from "@/hooks/useAuth"
+import { PhotoAnnotation } from "@/components/PhotoAnnotation"
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 function getTurbineModel(assetName?: string | null): TurbineModel | null {
@@ -226,6 +227,7 @@ export default function TaskDetail() {
   const [uploading, setUploading] = React.useState(false)
   const [actionError, setActionError] = React.useState('')
   const [openingAttachmentId, setOpeningAttachmentId] = React.useState<number | null>(null)
+  const [annotatingImage, setAnnotatingImage] = React.useState<string | null>(null)
   const fileInputRef = React.useRef<HTMLInputElement>(null)
 
   React.useEffect(() => {
@@ -470,11 +472,21 @@ export default function TaskDetail() {
   return (
     <div className="max-w-5xl mx-auto pb-20 space-y-5">
 
-      {/* BACK NAV */}
-      <button onClick={() => setLocation('/tasks')}
-        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors duration-150 group">
-        <ChevronLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform duration-150" /> Back to Task List
-      </button>
+      {/* BACK NAV + ACTIONS */}
+      <div className="flex items-center justify-between">
+        <button onClick={() => setLocation('/tasks')}
+          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors duration-150 group">
+          <ChevronLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform duration-150" /> Back to Task List
+        </button>
+        <a
+          href={`/api/reports/task/${taskId}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors duration-150 px-3 py-1.5 rounded-lg border border-border hover:border-primary/30"
+        >
+          <Printer className="w-3.5 h-3.5" /> QC Report
+        </a>
+      </div>
 
       {/* TASK HEADER */}
       <div className={`rounded-2xl border overflow-hidden shadow-sm ${isLocked ? 'border-emerald-300 bg-emerald-50/50' : 'border-border bg-white'}`}>
@@ -736,6 +748,24 @@ export default function TaskDetail() {
                           {att.uploaderName ?? 'Unknown'} · {formatDistanceToNow(new Date(att.createdAt), { addSuffix: true })}
                         </p>
                       </div>
+                      {isImg && !isLocked && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const token = localStorage.getItem('turbine_auth_token')
+                            const apiUrl = att.storageUrl.startsWith('/objects/')
+                              ? `/api/storage${att.storageUrl}`
+                              : att.storageUrl
+                            fetch(apiUrl, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+                              .then(r => r.blob())
+                              .then(blob => setAnnotatingImage(URL.createObjectURL(blob)))
+                              .catch(() => setUploadError('Failed to load image for annotation'))
+                          }}
+                          className="w-7 h-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors flex-shrink-0"
+                          title="Annotate image">
+                          <Camera className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                       {canDelete && (
                         <button
                           type="button"
@@ -1076,6 +1106,36 @@ export default function TaskDetail() {
 
         </div>
       </div>
+
+      {/* Photo Annotation Overlay */}
+      {annotatingImage && (
+        <PhotoAnnotation
+          imageUrl={annotatingImage}
+          onSave={(dataUrl) => {
+            // Convert data URL to blob and upload as new attachment
+            fetch(dataUrl)
+              .then(r => r.blob())
+              .then(async (blob) => {
+                const file = new File([blob], `annotated-${Date.now()}.png`, { type: 'image/png' })
+                const { uploadURL, objectPath } = await requestUploadUrlMutation.mutateAsync({
+                  data: { name: file.name, size: file.size, contentType: file.type }
+                })
+                await fetch(uploadURL, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } })
+                await createAttachmentMutation.mutateAsync({
+                  taskId,
+                  data: { fileName: file.name, mimeType: file.type, fileSize: file.size, storageUrl: objectPath },
+                })
+                refetchAttachments()
+              })
+              .catch(() => setUploadError('Failed to save annotated image'))
+            setAnnotatingImage(null)
+          }}
+          onClose={() => {
+            if (annotatingImage.startsWith('blob:')) URL.revokeObjectURL(annotatingImage)
+            setAnnotatingImage(null)
+          }}
+        />
+      )}
     </div>
   )
 }

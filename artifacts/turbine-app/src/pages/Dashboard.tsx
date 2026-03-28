@@ -7,7 +7,9 @@ import {
   AlertTriangle, CheckCircle2, Clock, Activity,
   ArrowRight, ShieldCheck, Users, Zap, Timer,
   TrendingUp, ChevronRight, Cpu, BarChart2, History,
+  Megaphone, UserCheck,
 } from "lucide-react"
+import { useAuth } from "@/hooks/useAuth"
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from "recharts"
 import { formatDistanceToNow } from "date-fns"
 
@@ -53,10 +55,11 @@ function SectionHeader({ icon: Icon, label, action, onAction }: {
 }
 
 const ROLE_LABELS: Record<string, string> = {
-  engineer: 'Engineer',
-  supervisor: 'Supervisor',
-  technician: 'Technician',
+  technician: 'Field Technician',
+  supervisor: 'QC Supervisor',
   site_manager: 'Site Manager',
+  engineer: 'Field Engineer',
+  admin: 'Administrator',
 }
 
 export default function Dashboard() {
@@ -65,6 +68,9 @@ export default function Dashboard() {
   const { data: stats, isLoading: statsLoading } = useGetDashboardStats()
   const [, setLocation] = useLocation()
   const { user } = useAuth()
+
+  const isManager = user && ['supervisor', 'site_manager', 'engineer'].includes(user.role)
+  const isTechnician = user?.role === 'technician'
 
   const computed = React.useMemo(() => {
     if (!tasks) return { total: 0, inProgress: 0, overdue: 0, pendingQc: 0, assigned: 0 }
@@ -112,6 +118,17 @@ export default function Dashboard() {
         <div className="absolute right-32 bottom-0 w-48 h-48 rounded-full bg-sky-400/8 blur-2xl pointer-events-none" />
         <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
+            {user && (
+              <div className="flex items-center gap-2.5 mb-3">
+                <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-[10px] font-bold text-primary">
+                  {user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground leading-tight">{user.name}</p>
+                  <p className="text-[10px] text-muted-foreground font-medium tracking-wide uppercase">{ROLE_LABELS[user.role] ?? user.role}</p>
+                </div>
+              </div>
+            )}
             <div className="flex items-center gap-2 mb-3">
               <span className="text-[10px] font-mono tracking-widest text-muted-foreground uppercase">SGT-9000HL · Unit 1</span>
               <span className="w-1 h-1 rounded-full bg-muted-foreground/40" />
@@ -141,6 +158,67 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* ── ROLE-BASED: My Assigned Tasks (technicians) ── */}
+      {isTechnician && tasks && (
+        (() => {
+          const myTasks = tasks.filter(t => t.assignedToId === user?.id && ['assigned', 'in_progress', 'paused', 'revision_needed'].includes(t.status))
+          if (myTasks.length === 0) return null
+          return (
+            <>
+              <SectionHeader icon={UserCheck} label="My Tasks" action="View all" onAction={() => setLocation('/tasks')} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {myTasks.slice(0, 6).map(task => (
+                  <Card key={task.id}
+                    className="p-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-150 cursor-pointer border-l-4"
+                    style={{ borderLeftColor: task.status === 'in_progress' ? '#0284c7' : task.status === 'revision_needed' ? '#dc2626' : '#d97706' }}
+                    onClick={() => setLocation(`/tasks/${task.id}`)}>
+                    <div className="flex items-start gap-2">
+                      <StatusDot status={task.status} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{task.title}</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">{task.sectionName || 'General'}</p>
+                      </div>
+                      <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 flex-shrink-0 mt-0.5" />
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </>
+          )
+        })()
+      )}
+
+      {/* ── ROLE-BASED: Escalation Panel (supervisors/managers) ── */}
+      {isManager && tasks && (
+        (() => {
+          const staleQcTasks = tasks.filter(t => ['submitted', 'under_qc'].includes(t.status))
+          if (staleQcTasks.length === 0) return null
+          return (
+            <>
+              <SectionHeader icon={Megaphone} label="Pending QC Review" action="Review all" onAction={() => setLocation('/tasks')} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {staleQcTasks.slice(0, 4).map(task => (
+                  <Card key={task.id}
+                    className="p-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-150 cursor-pointer border-l-4 border-l-purple-400"
+                    onClick={() => setLocation(`/tasks/${task.id}`)}>
+                    <div className="flex items-start gap-2">
+                      <StatusDot status={task.status} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{task.title}</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          {task.sectionName || 'General'} · Submitted by {task.assignedToName || 'Unknown'}
+                        </p>
+                      </div>
+                      <Badge variant="purple" className="text-[9px] px-1.5 flex-shrink-0">QC</Badge>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </>
+          )
+        })()
+      )}
 
       {/* ── CRITICAL ALERTS ── */}
       {(computed.overdue > 0 || computed.pendingQc > 0) && (

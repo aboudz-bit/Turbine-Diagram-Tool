@@ -1,11 +1,13 @@
 import * as React from "react"
 import { Link, useLocation } from "wouter"
-import { LayoutDashboard, ListTodo, PlusCircle, History, Settings, Activity, LogOut, BarChart2 } from "lucide-react"
+import { LayoutDashboard, ListTodo, PlusCircle, History, Settings, Activity, LogOut, BarChart2, QrCode } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AnimatePresence, motion } from "framer-motion"
 import { useAuth } from "@/hooks/useAuth"
 import { usePermissions } from "@/hooks/usePermissions"
 import { NotificationBell } from "@/components/NotificationBell"
+import { useSSE } from "@/hooks/useSSE"
+import { BarcodeScanner } from "@/components/BarcodeScanner"
 
 const ALL_NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard, requireCreate: false },
@@ -38,6 +40,8 @@ function UserIdentity() {
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation()
   const { canCreateTask } = usePermissions()
+  const sseStatus = useSSE()
+  const [showScanner, setShowScanner] = React.useState(false)
 
   const navItems = ALL_NAV_ITEMS.filter(item => !item.requireCreate || canCreateTask)
 
@@ -108,14 +112,25 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <span className="font-display font-bold tracking-widest uppercase text-foreground text-sm">Turbine QC</span>
           </div>
 
-          {/* Desktop: System Online indicator */}
+          {/* Desktop: System Online indicator with live SSE status */}
           <div className="hidden md:flex items-center gap-2 text-xs font-medium text-muted-foreground">
-            <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            System Online
+            <span className={cn("flex h-1.5 w-1.5 rounded-full",
+              sseStatus === "connected" ? "bg-emerald-500 animate-pulse" :
+              sseStatus === "connecting" ? "bg-amber-500 animate-pulse" :
+              "bg-emerald-500 animate-pulse"
+            )} />
+            {sseStatus === "connected" ? "Live" : sseStatus === "connecting" ? "Connecting..." : "System Online"}
           </div>
 
-          {/* Right: Notification bell + User identity */}
+          {/* Right: Scanner + Notification bell + User identity */}
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowScanner(true)}
+              className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+              title="Scan QR Code"
+            >
+              <QrCode className="w-4 h-4" />
+            </button>
             <NotificationBell />
             <UserIdentity />
           </div>
@@ -157,6 +172,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           })}
         </nav>
       </div>
+
+      {/* QR Scanner Overlay */}
+      {showScanner && (
+        <BarcodeScanner onClose={() => setShowScanner(false)} />
+      )}
     </div>
   )
 }
