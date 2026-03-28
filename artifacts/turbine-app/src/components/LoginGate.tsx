@@ -1,11 +1,60 @@
 import * as React from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useListUsers } from "@workspace/api-client-react";
 import { Card, Button } from "@/components/ui/core";
 import { Activity, ChevronRight, RefreshCw, AlertCircle } from "lucide-react";
 
+interface UserEntry {
+  id: number;
+  name: string;
+  role: string;
+}
+
+function usePublicUsers() {
+  const [users, setUsers] = React.useState<UserEntry[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState(false);
+  const [attempt, setAttempt] = React.useState(0);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(false);
+
+    fetch("/api/users")
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json() as Promise<UserEntry[]>;
+      })
+      .then((data) => {
+        if (!cancelled) {
+          setUsers(data);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setError(true);
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [attempt]);
+
+  const retry = React.useCallback(() => setAttempt((n) => n + 1), []);
+
+  return { users, loading, error, retry };
+}
+
 export function LoginGate({ children }: { children: React.ReactNode }) {
   const { user, login, isLoading: authLoading } = useAuth();
+
+  const { users, loading: usersLoading, error: usersError, retry } = usePublicUsers();
+
+  const [loggingIn, setLoggingIn] = React.useState<number | null>(null);
+  const [loginError, setLoginError] = React.useState<string | null>(null);
 
   // Dev-only: ?devUser=N auto-logs in (or switches user) for screenshot validation
   React.useEffect(() => {
@@ -15,18 +64,6 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
       login(Number(devUserId)).catch(() => {});
     }
   }, [authLoading, user, login]);
-
-  const {
-    data: users,
-    isLoading: usersLoading,
-    isError: usersError,
-    refetch,
-  } = useListUsers(
-    user ? { query: { enabled: false } } : undefined,
-  );
-
-  const [loggingIn, setLoggingIn] = React.useState<number | null>(null);
-  const [loginError, setLoginError] = React.useState<string | null>(null);
 
   const handleLogin = React.useCallback(async (userId: number) => {
     setLoggingIn(userId);
@@ -87,7 +124,7 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
               variant="outline"
               size="sm"
               className="gap-1.5"
-              onClick={() => refetch()}
+              onClick={retry}
             >
               <RefreshCw className="w-3 h-3" /> Retry
             </Button>
@@ -99,7 +136,7 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
                 <p className="text-xs text-destructive font-medium">{loginError}</p>
               </div>
             )}
-            {(users as { id: number; name: string; role: string }[] | undefined)?.map((u) => (
+            {users.map((u) => (
               <button
                 key={u.id}
                 onClick={() => handleLogin(u.id)}
