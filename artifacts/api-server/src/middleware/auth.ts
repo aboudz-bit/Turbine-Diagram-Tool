@@ -67,10 +67,10 @@ export function requireAuth(
   }
 }
 
-export function signToken(user: AuthUser): string {
+export function signToken(user: AuthUser, rememberMe = false): string {
   return jwt.sign(
     { sub: user.id, name: user.name, email: user.email, role: user.role },
     getJwtSecret(),
-    { expiresIn: "24h" },
+    { expiresIn: rememberMe ? "30d" : "8h" },
   );
 }

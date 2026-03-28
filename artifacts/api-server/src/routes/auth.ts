@@ -1,11 +1,12 @@
 import { Router, type IRouter } from "express";
 import { db, usersTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
+import bcrypt from "bcryptjs";
 import { signToken, requireAuth } from "../middleware/auth";
 
 const router: IRouter = Router();
 
-// Public: list all users (needed by the login screen — no auth required)
+// Public: list all users (name/role only — used by devUser param)
 router.get("/users", async (req, res): Promise<void> => {
   try {
     const users = await db
@@ -25,7 +26,70 @@ router.get("/users", async (req, res): Promise<void> => {
   }
 });
 
-// Public: login by userId (no password — dev/staging picker flow)
+// Public: login with username + password (production login form)
+router.post("/auth/login-with-credentials", async (req, res): Promise<void> => {
+  try {
+    const { username, password, rememberMe } = req.body as {
+      username?: string;
+      password?: string;
+      rememberMe?: boolean;
+    };
+
+    if (!username || typeof username !== "string" || !username.trim()) {
+      res.status(400).json({ error: "Username is required" });
+      return;
+    }
+    if (!password || typeof password !== "string") {
+      res.status(400).json({ error: "Password is required" });
+      return;
+    }
+
+    const usernameClean = username.trim().toLowerCase();
+
+    const [user] = await db
+      .select()
+      .from(usersTable)
+      .where(
+        or(
+          eq(usersTable.username, usernameClean),
+          eq(usersTable.email, usernameClean),
+        ),
+      );
+
+    if (!user || !user.passwordHash) {
+      res.status(401).json({ error: "Invalid username or password" });
+      return;
+    }
+
+    const valid = await bcrypt.compare(password, user.passwordHash);
+    if (!valid) {
+      res.status(401).json({ error: "Invalid username or password" });
+      return;
+    }
+
+    const token = signToken(
+      { id: user.id, name: user.name, email: user.email, role: user.role },
+      rememberMe === true,
+    );
+
+    req.log.info({ userId: user.id, role: user.role, rememberMe }, "User logged in with credentials");
+
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (err) {
+    req.log.error({ err }, "Failed to login with credentials");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Public: login by userId (used by ?devUser= query param — kept for backward compat)
 router.post("/auth/login", async (req, res): Promise<void> => {
   try {
     const { userId } = req.body;

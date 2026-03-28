@@ -14,6 +14,7 @@ interface AuthContextValue {
   user: AuthUser | null;
   token: string | null;
   login: (userId: number) => Promise<void>;
+  loginWithCredentials: (username: string, password: string, rememberMe: boolean) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -22,6 +23,7 @@ const AuthContext = React.createContext<AuthContextValue>({
   user: null,
   token: null,
   login: async () => {},
+  loginWithCredentials: async () => {},
   logout: () => {},
   isLoading: true,
 });
@@ -32,6 +34,22 @@ const USER_KEY = "turbine_auth_user";
 function clearStorage() {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
+  sessionStorage.removeItem(TOKEN_KEY);
+  sessionStorage.removeItem(USER_KEY);
+}
+
+function getStoredToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY) ?? sessionStorage.getItem(TOKEN_KEY);
+}
+
+function getStoredUser(): string | null {
+  return localStorage.getItem(USER_KEY) ?? sessionStorage.getItem(USER_KEY);
+}
+
+function storeSession(token: string, user: AuthUser, rememberMe: boolean) {
+  const storage = rememberMe ? localStorage : sessionStorage;
+  storage.setItem(TOKEN_KEY, token);
+  storage.setItem(USER_KEY, JSON.stringify(user));
 }
 
 function isTokenExpired(token: string): boolean {
@@ -56,13 +74,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Dev-only: ?devUser=N forces a switch to that user ID for screenshot validation
       const urlDevUser = new URLSearchParams(window.location.search).get("devUser");
 
-      let savedToken = localStorage.getItem(TOKEN_KEY);
-      let savedUser = localStorage.getItem(USER_KEY);
+      let savedToken = getStoredToken();
+      let savedUser = getStoredUser();
 
       if (urlDevUser) {
         const storedUser = savedUser ? JSON.parse(savedUser) : null;
         if (!storedUser || storedUser.id !== Number(urlDevUser)) {
-          // Clear existing session and re-login as the requested user
           clearStorage();
           clearQueryCache();
           savedToken = null;
@@ -78,7 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               localStorage.setItem(TOKEN_KEY, data.token);
               localStorage.setItem(USER_KEY, JSON.stringify(data.user));
               savedToken = data.token;
-              savedUser = JSON.stringify(data.user); // fix: was always null
+              savedUser = JSON.stringify(data.user);
             }
           } catch {
             // Ignore — fall through to normal login screen
@@ -87,7 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Register the token getter immediately so API calls have auth headers
-      setAuthTokenGetter(() => localStorage.getItem(TOKEN_KEY));
+      setAuthTokenGetter(() => getStoredToken());
 
       if (!savedToken || !savedUser) {
         if (!cancelled) setIsLoading(false);
@@ -120,15 +137,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const serverUser: AuthUser = await res.json();
 
         if (!cancelled) {
-          // Update localStorage with fresh user data from server
-          localStorage.setItem(USER_KEY, JSON.stringify(serverUser));
+          // Update stored user with fresh server data
+          const storage = localStorage.getItem(TOKEN_KEY) ? localStorage : sessionStorage;
+          storage.setItem(USER_KEY, JSON.stringify(serverUser));
           setLoggedIn(true);
           setToken(savedToken);
           setUser(serverUser);
         }
       } catch (err) {
         console.error("[auth] /auth/me network error during bootstrap:", err);
-        // Network error: keep cached session so the app still works
         try {
           const cachedUser = JSON.parse(savedUser);
           if (!cancelled) {
@@ -151,6 +168,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  // Login with username + password (main production flow)
+  const loginWithCredentials = React.useCallback(
+    async (username: string, password: string, rememberMe: boolean) => {
+      const res = await fetch("/api/auth/login-with-credentials", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password, rememberMe }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(
+          (body as { error?: string }).error ?? `Login failed (${res.status})`,
+        );
+      }
+
+      const data: { token: string; user: AuthUser } = await res.json();
+
+      storeSession(data.token, data.user, rememberMe);
+      clearQueryCache();
+      setLoggedIn(true);
+      setToken(data.token);
+      setUser(data.user);
+    },
+    [],
+  );
+
+  // Legacy login by userId (used by ?devUser= param only)
   const login = React.useCallback(async (userId: number) => {
     const res = await fetch("/api/auth/login", {
       method: "POST",
@@ -178,11 +223,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = React.useCallback(() => {
     setLoggedIn(false);
     clearStorage();
-    // flushSync commits the state update synchronously so auth-gated pages
-    // unmount (and their React Query observers are removed) before the cache
-    // is cleared.  Without this, clearQueryCache() triggers refetches while
-    // those pages are still mounted; the resulting 401s leave them with
-    // data=undefined + isLoading=false, causing a crash.
+    // flushSync ensures auth-gated pages unmount before the cache is cleared.
     flushSync(() => {
       setToken(null);
       setUser(null);
@@ -191,8 +232,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = React.useMemo(
-    () => ({ user, token, login, logout, isLoading }),
-    [user, token, login, logout, isLoading],
+    () => ({ user, token, login, loginWithCredentials, logout, isLoading }),
+    [user, token, login, loginWithCredentials, logout, isLoading],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
