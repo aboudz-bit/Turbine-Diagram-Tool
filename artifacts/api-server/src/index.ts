@@ -1,6 +1,7 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { startReminderEngine, stopReminderEngine } from "./services/reminderEngine";
+import { runStartupMigration } from "./lib/startupMigration";
 
 process.on("uncaughtException", (err) => {
   logger.error({ err }, "Uncaught exception — server will continue");
@@ -30,16 +31,22 @@ logger.info({
   NODE_ENV: process.env.NODE_ENV || "not set",
 }, "Startup environment check");
 
-app.listen(port, (err) => {
-  if (err) {
-    logger.error({ err }, "Error listening on port");
-    process.exit(1);
-  }
+// Run idempotent startup migration before accepting traffic
+runStartupMigration().then(() => {
+  app.listen(port, (err) => {
+    if (err) {
+      logger.error({ err }, "Error listening on port");
+      process.exit(1);
+    }
 
-  logger.info({ port }, "Server listening");
+    logger.info({ port }, "Server listening");
 
-  // Start the Smart Reminder Engine (background deadline/overdue scanner)
-  startReminderEngine();
+    // Start the Smart Reminder Engine (background deadline/overdue scanner)
+    startReminderEngine();
+  });
+}).catch((err) => {
+  logger.error({ err }, "Fatal: startup migration failed");
+  process.exit(1);
 });
 
 // Graceful shutdown
