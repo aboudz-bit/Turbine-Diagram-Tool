@@ -1,0 +1,76 @@
+Debug the mismatch between Replit Preview and Published app login.
+
+Problem:
+- Login works in Replit Preview
+- Login fails in the Published app (.replit.app)
+- Same username/password used
+- Published app shows "Invalid username or password"
+- This means Preview and Published are not using the same effective auth data/runtime state
+
+Your task:
+Do a focused production-vs-preview auth diagnosis and fix it.
+
+Check all of the following:
+
+1. Compare environments
+- confirm which DATABASE_URL Preview uses
+- confirm which DATABASE_URL Published app uses
+- confirm JWT_SECRET is available in Published runtime
+- confirm username/password auth code is deployed in Published backend
+
+2. Verify production database state
+For the Published database:
+- confirm users table has columns:
+  - username
+  - password_hash
+- confirm all 5 demo users exist
+- confirm their usernames are correctly populated:
+  - ahmed.alrashidi
+  - sarah.mitchell
+  - khalid.hamdan
+  - omar.farouq
+  - priya.nair
+- confirm password_hash is present and valid for Demo@2024
+
+3. Verify startup migration actually runs in Published app
+- check published logs
+- confirm the startup migration executed successfully
+- confirm it did not fail silently
+- if it failed, fix it safely
+
+4. Verify published backend login endpoint directly
+Test on the live published domain:
+- POST /api/auth/login-with-credentials
+with:
+  username = ahmed.alrashidi
+  password = Demo@2024
+
+Do this against:
+- Preview backend
+- Published backend
+
+Compare responses exactly.
+
+5. Fix production safely
+If production DB is missing username/password_hash or the values are wrong:
+- fix production DB
+- do NOT recreate users
+- do NOT wipe data
+- only update missing or invalid auth fields safely
+
+6. Republish if required
+If backend/runtime changes are needed:
+- deploy/redeploy the published app
+- verify the live login works after deploy
+
+Return:
+1. exact root cause
+2. whether Preview and Published were using different DB/runtime state
+3. what was fixed
+4. live verification result
+5. confirmation that these 5 accounts now work on the Published app:
+   - ahmed.alrashidi / Demo@2024
+   - sarah.mitchell / Demo@2024
+   - khalid.hamdan / Demo@2024
+   - omar.farouq / Demo@2024
+   - priya.nair / Demo@2024
