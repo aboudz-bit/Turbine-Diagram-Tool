@@ -225,6 +225,7 @@ export default function TaskDetail() {
   const [uploadError, setUploadError] = React.useState('')
   const [uploading, setUploading] = React.useState(false)
   const [actionError, setActionError] = React.useState('')
+  const [openingAttachmentId, setOpeningAttachmentId] = React.useState<number | null>(null)
   const fileInputRef = React.useRef<HTMLInputElement>(null)
 
   React.useEffect(() => {
@@ -322,8 +323,13 @@ export default function TaskDetail() {
   }
 
   const handleStop = async () => {
-    await stopMutation.mutateAsync({ taskId })
-    refetch()
+    setActionError('')
+    try {
+      await stopMutation.mutateAsync({ taskId })
+      refetch()
+    } catch (err) {
+      setActionError(extractErrorMessage(err, 'Failed to stop work'))
+    }
   }
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -353,29 +359,77 @@ export default function TaskDetail() {
         data: { fileName: file.name, mimeType: file.type, fileSize: file.size, storageUrl: objectPath },
       })
       refetchAttachments()
-    } catch {
-      setUploadError('Upload failed. Please try again.')
+    } catch (err) {
+      setUploadError(extractErrorMessage(err, 'Upload failed. Please try again.'))
     } finally {
       setUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
 
+  // Attachment download: fetches with Authorization header, creates a blob URL,
+  // then opens images/PDFs in a new tab or downloads other files directly.
+  // A plain <a href="..."> link would fail with 401 because browser tab navigations
+  // do not include the Authorization header.
+  const handleOpenAttachment = async (att: { id: number; storageUrl: string; fileName: string; mimeType: string }) => {
+    setOpeningAttachmentId(att.id)
+    const token = localStorage.getItem('turbine_auth_token')
+    const apiUrl = att.storageUrl.startsWith('/objects/')
+      ? `/api/storage${att.storageUrl}`
+      : att.storageUrl
+    try {
+      const res = await fetch(apiUrl, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error((body as { error?: string }).error ?? `Failed to load file (${res.status})`)
+      }
+      const blob = await res.blob()
+      const blobUrl = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = blobUrl
+      if (att.mimeType.startsWith('image/') || att.mimeType === 'application/pdf') {
+        a.target = '_blank'
+        a.rel = 'noopener noreferrer'
+      } else {
+        a.download = att.fileName
+      }
+      a.click()
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 30_000)
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Failed to open file')
+    } finally {
+      setOpeningAttachmentId(null)
+    }
+  }
+
   const handleDeleteAttachment = async (attachmentId: number) => {
-    await deleteAttachmentMutation.mutateAsync({ taskId, attachmentId })
-    refetchAttachments()
+    setUploadError('')
+    try {
+      await deleteAttachmentMutation.mutateAsync({ taskId, attachmentId })
+      refetchAttachments()
+    } catch (err) {
+      setUploadError(extractErrorMessage(err, 'Failed to delete attachment'))
+    }
   }
 
   const handleSaveTechSignature = async (dataUrl: string) => {
     setSigError('')
-    await saveSignature(taskId, 'technician_completion', dataUrl)
-    refetch()
+    try {
+      await saveSignature(taskId, 'technician_completion', dataUrl)
+      refetch()
+    } catch (err) {
+      setSigError(err instanceof Error ? err.message : 'Failed to save signature')
+    }
   }
 
   const handleSaveSupervisorSignature = async (dataUrl: string) => {
     setSigError('')
-    await saveSignature(taskId, 'supervisor_qc_approval', dataUrl)
-    refetch()
+    try {
+      await saveSignature(taskId, 'supervisor_qc_approval', dataUrl)
+      refetch()
+    } catch (err) {
+      setSigError(err instanceof Error ? err.message : 'Failed to save signature')
+    }
   }
 
   const handleSubmitForQc = async () => {
@@ -669,13 +723,15 @@ export default function TaskDetail() {
                           : <FileText className="w-4 h-4 text-muted-foreground" />}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <a
-                          href={att.storageUrl.startsWith('/objects/') ? `/api/storage${att.storageUrl}` : att.storageUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs font-medium text-foreground hover:text-primary truncate block transition-colors">
-                          {att.fileName}
-                        </a>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenAttachment(att)}
+                          disabled={openingAttachmentId === att.id}
+                          className="text-xs font-medium text-foreground hover:text-primary truncate block transition-colors text-left w-full disabled:opacity-60">
+                          {openingAttachmentId === att.id
+                            ? <span className="text-primary">Opening…</span>
+                            : att.fileName}
+                        </button>
                         <p className="text-[10px] text-muted-foreground mt-0.5">
                           {att.uploaderName ?? 'Unknown'} · {formatDistanceToNow(new Date(att.createdAt), { addSuffix: true })}
                         </p>

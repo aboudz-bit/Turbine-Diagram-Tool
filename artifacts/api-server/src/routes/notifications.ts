@@ -22,6 +22,28 @@ router.get("/notifications", async (req, res) => {
   }
 });
 
+// read-all MUST come before /:id/read — otherwise Express matches the
+// literal string "read-all" as the :id param and parseInt("read-all") = NaN.
+router.patch("/notifications/read-all", async (req, res) => {
+  try {
+    const userId = req.user!.id;
+    await db
+      .update(notificationsTable)
+      .set({ isRead: true })
+      .where(
+        and(
+          eq(notificationsTable.userId, userId),
+          eq(notificationsTable.isRead, false),
+        ),
+      );
+
+    res.json({ success: true });
+  } catch (err) {
+    req.log.error({ err }, "Failed to mark all notifications as read");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.patch("/notifications/:id/read", async (req, res): Promise<void> => {
   try {
     const userId = req.user!.id;
@@ -46,26 +68,6 @@ router.patch("/notifications/:id/read", async (req, res): Promise<void> => {
     res.json(updated);
   } catch (err) {
     req.log.error({ err }, "Failed to mark notification as read");
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
-
-router.patch("/notifications/read-all", async (req, res) => {
-  try {
-    const userId = req.user!.id;
-    await db
-      .update(notificationsTable)
-      .set({ isRead: true })
-      .where(
-        and(
-          eq(notificationsTable.userId, userId),
-          eq(notificationsTable.isRead, false),
-        ),
-      );
-
-    res.json({ success: true });
-  } catch (err) {
-    req.log.error({ err }, "Failed to mark all notifications as read");
     res.status(500).json({ error: "Internal server error" });
   }
 });

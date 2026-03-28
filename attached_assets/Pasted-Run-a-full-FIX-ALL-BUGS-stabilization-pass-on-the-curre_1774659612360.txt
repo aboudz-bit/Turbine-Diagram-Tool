@@ -1,0 +1,177 @@
+Run a full FIX-ALL-BUGS stabilization pass on the current Turbine QC system.
+
+IMPORTANT:
+- BUG FIX ONLY
+- Do NOT add new features
+- Do NOT refactor stable architecture
+- Do NOT rename folders or rewrite working modules
+- Safe stabilization mode only
+- Fix real bugs only
+- Preserve current behavior unless it is clearly broken
+
+GOAL:
+Find and fix all currently known and reproducible bugs across frontend, backend, DB integration, auth flow, task workflow, notifications, attachments, storage, and logout/session handling.
+
+PRIORITY:
+1. Fix runtime bugs
+2. Fix API errors / crashes
+3. Fix stuck loading / stale state / auth race issues
+4. Fix attachment/open/download issues
+5. Fix task workflow edge cases
+6. Fix UX bugs where actions fail silently
+7. Fix broken error handling
+8. Fix production/staging stability issues
+
+==================================================
+AREAS TO CHECK AND FIX
+==================================================
+
+1. AUTH / SESSION BUGS
+- logout should never break UI or appear to kill server
+- switching users should work repeatedly
+- no stale spinner on login cards
+- no stale React Query cache after logout/login
+- no auth race conditions during bootstrap
+- no infinite loading on login screen
+- no broken token handling after logout
+
+2. TASK DETAIL BUGS
+- task detail page must never hang on infinite spinner
+- if task fetch fails, show a clear error
+- all mutations must surface errors:
+  - start
+  - pause
+  - resume
+  - stop
+  - submit for QC
+  - reject
+  - approve
+- no silent failures
+
+3. CREATE TASK BUGS
+- turbine units must always load
+- SGT-9000HL and SGT-8000H must appear
+- section/stage/component selection must work
+- create task must show real backend error if it fails
+- no generic “unexpected error” when a real message exists
+- deadline coercion must work
+- template flow must not break submission
+
+4. ATTACHMENT BUGS
+- upload should not crash server
+- if storage is not configured, return clean 503 JSON
+- if storage is configured, upload must succeed
+- attachment metadata must not be saved if upload fails
+- uploaded file must be visible across roles on the same task
+- clicking attachment must open correct API storage route
+- no blank page when opening attachment
+- delete permissions must work correctly
+
+5. STORAGE / SERVER STABILITY BUGS
+- missing object storage config must never crash server
+- PostgreSQL disconnect should not permanently break API process
+- startup should be resilient when DB is slow to start
+- reminder engine must never crash process
+- all failing API routes must return JSON, not HTML
+
+6. WORKFLOW BUGS
+- start / pause / resume / stop flow must behave correctly
+- submit must respect current task state rules
+- approved tasks must be locked
+- reject → revision_needed → resubmit → approve must work
+- invalid transitions must return useful errors
+- no stale version / optimistic locking bugs in normal flow
+
+7. NOTIFICATION BUGS
+- bell UI must open correctly
+- unread count must update
+- no overlay / z-index issues
+- notifications must not render as broken banners
+- click notification should navigate correctly
+- mark read / mark all read must work
+
+8. UI / LOADING BUGS
+- no infinite spinners
+- no components crashing on undefined data
+- no stale loading state after logout
+- add guards for undefined/null data where needed
+- every loading state must have:
+  - success path
+  - error path
+  - empty path
+
+9. ERROR HANDLING BUGS
+- show real API error whenever available
+- no swallowed promise rejections
+- no console-only failures
+- add minimal try/catch where missing
+- keep user-facing errors clear and specific
+
+==================================================
+VALIDATION REQUIRED AFTER FIXES
+==================================================
+
+Run these validation flows and ensure they pass:
+
+A. AUTH FLOW
+- login as user A
+- logout
+- login as user B
+- repeat multiple times
+- no restart needed
+- no stale spinner
+- no crash overlay
+
+B. CREATE TASK FLOW
+- load turbines
+- create task on 9000HL
+- create task on 8000H
+- verify task appears in list
+
+C. TASK WORKFLOW
+- start
+- pause
+- resume
+- stop
+- sign
+- submit
+- reject
+- revision_needed
+- resubmit
+- approve
+
+D. ATTACHMENT FLOW
+- upload file as technician
+- refresh
+- switch to supervisor
+- verify same file visible
+- open file
+- delete if allowed
+- verify no server crash
+
+E. STABILITY
+- /api/healthz stays 200
+- no HTML errors from API
+- no crash after reminder scans
+- no crash after logout
+- no crash when storage env vars are missing
+
+==================================================
+OUTPUT REQUIRED
+==================================================
+
+After fixing, return:
+
+1. list of bugs fixed
+2. exact files changed
+3. root cause for each important bug
+4. any bug that could not be fixed yet
+5. confirmation that:
+   - no infinite spinners remain
+   - no silent failures remain
+   - no known crash vectors remain
+   - app is stable for continued testing
+
+Do NOT add any new feature.
+Do NOT do broad cleanup.
+Only fix real current bugs.

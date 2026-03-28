@@ -479,8 +479,6 @@ export default function CreateTask() {
       deadline: formData.deadline ? new Date(formData.deadline).toISOString() : undefined,
     }
 
-    console.log('Submitting task', payload)
-
     try {
       const result = await createTaskMutation.mutateAsync({ data: payload })
       toast({ title: 'Task created', description: `Work order #${result.id} has been created successfully.` })
