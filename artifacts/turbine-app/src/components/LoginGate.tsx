@@ -21,7 +21,7 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
   const [showPassword, setShowPassword] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const [showDemo, setShowDemo] = React.useState(false);
+  const [showDemo, setShowDemo] = React.useState(true);
 
   // Incremented on every logout so stale in-flight responses are discarded.
   const generationRef = React.useRef(0);
@@ -70,6 +70,24 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
     setUsername(u.username);
     setPassword("Demo@2024");
     setError(null);
+  };
+
+  // One-click demo login — instantly authenticates the selected demo account
+  const quickLogin = async (u: typeof DEMO_ACCOUNTS[number]) => {
+    if (loading) return;
+    const generation = generationRef.current;
+    setUsername(u.username);
+    setPassword("Demo@2024");
+    setError(null);
+    setLoading(true);
+    try {
+      await loginWithCredentials(u.username, "Demo@2024", false);
+    } catch (err) {
+      if (generationRef.current === generation) {
+        setError(err instanceof Error ? err.message : "Login failed. Please try again.");
+        setLoading(false);
+      }
+    }
   };
 
   // Full-screen spinner while restoring session
@@ -220,14 +238,14 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
           </form>
         </Card>
 
-        {/* Demo accounts panel */}
+        {/* Demo accounts panel — quick login */}
         <Card className="overflow-hidden">
           <button
             type="button"
             onClick={() => setShowDemo(v => !v)}
             className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted/40 transition-colors"
           >
-            <span className="text-xs font-medium text-muted-foreground">Demo accounts</span>
+            <span className="text-xs font-medium text-muted-foreground">Quick login</span>
             {showDemo
               ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" />
               : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
@@ -236,24 +254,17 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
 
           {showDemo && (
             <div className="border-t border-border">
-              <div className="px-4 py-2 flex items-center justify-between">
-                <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
-                  Password for all accounts
-                </span>
-                <code className="text-[11px] font-mono bg-muted px-2 py-0.5 rounded text-foreground font-medium">
-                  Demo@2024
-                </code>
-              </div>
               <div className="divide-y divide-border">
                 {DEMO_ACCOUNTS.map(account => (
                   <button
                     key={account.username}
                     type="button"
-                    onClick={() => fillDemo(account)}
-                    className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-muted/40 transition-colors text-left group"
+                    disabled={loading}
+                    onClick={() => quickLogin(account)}
+                    className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-primary/5 transition-colors text-left group disabled:opacity-50"
                   >
                     <div>
-                      <p className="text-xs font-medium text-foreground">{account.name}</p>
+                      <p className="text-xs font-medium text-foreground group-hover:text-primary transition-colors">{account.name}</p>
                       <p className="text-[10px] text-muted-foreground font-mono">{account.username}</p>
                     </div>
                     <span className={cn(
@@ -269,7 +280,7 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
               </div>
               <div className="px-4 py-2 border-t border-border">
                 <p className="text-[10px] text-muted-foreground text-center">
-                  Click any account to autofill credentials
+                  Click any account to sign in instantly
                 </p>
               </div>
             </div>
