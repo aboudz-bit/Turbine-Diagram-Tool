@@ -9,7 +9,6 @@ import {
   TrendingUp, ChevronRight, Cpu, BarChart2, History,
   Megaphone, UserCheck,
 } from "lucide-react"
-import { useAuth } from "@/hooks/useAuth"
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from "recharts"
 import { formatDistanceToNow } from "date-fns"
 
