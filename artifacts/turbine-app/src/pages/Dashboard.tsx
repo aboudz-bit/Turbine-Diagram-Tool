@@ -319,7 +319,7 @@ export default function Dashboard() {
                     ))}
                   </div>
                 </div>
-              : sectionChartData.length > 0
+              : sectionChartData && sectionChartData.length > 0
               ? <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={sectionChartData} margin={{ top: 5, right: 5, left: -28, bottom: 5 }}>
                     <XAxis dataKey="name" stroke="#9ca3af" fontSize={10} tickLine={false} axisLine={false} />
