@@ -55,6 +55,20 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
 
   const [loggingIn, setLoggingIn] = React.useState<number | null>(null);
   const [loginError, setLoginError] = React.useState<string | null>(null);
+  // Incremented on every logout so that a resolved promise from a previous
+  // login attempt doesn't apply its error/loading state to the new session.
+  const loginGenerationRef = React.useRef(0);
+
+  // Clear stale login state whenever the user logs out (user transitions to null).
+  // LoginGate never unmounts, so without this the loggingIn spinner from the
+  // previous session persists on the card that was last clicked.
+  React.useEffect(() => {
+    if (!user) {
+      loginGenerationRef.current += 1;
+      setLoggingIn(null);
+      setLoginError(null);
+    }
+  }, [user]);
 
   // Dev-only: ?devUser=N auto-logs in (or switches user) for screenshot validation
   React.useEffect(() => {
@@ -66,15 +80,19 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
   }, [authLoading, user, login]);
 
   const handleLogin = React.useCallback(async (userId: number) => {
+    const generation = loginGenerationRef.current;
     setLoggingIn(userId);
     setLoginError(null);
     try {
       await login(userId);
     } catch (err) {
-      setLoginError(
-        err instanceof Error ? err.message : "Login failed. Please try again.",
-      );
-      setLoggingIn(null);
+      // Only apply the error if this attempt hasn't been superseded by a logout
+      if (loginGenerationRef.current === generation) {
+        setLoginError(
+          err instanceof Error ? err.message : "Login failed. Please try again.",
+        );
+        setLoggingIn(null);
+      }
     }
   }, [login]);
 
