@@ -17,8 +17,9 @@ import {
   timeEntriesTable,
   notificationsTable,
   auditLogTable,
+  usersTable,
 } from "@workspace/db";
-import { eq, and, isNotNull, isNull, lt, gt, sql, ne } from "drizzle-orm";
+import { eq, and, isNotNull, isNull, lt, gt, sql, ne, inArray } from "drizzle-orm";
 import { createNotification } from "../lib/notifications";
 
 // ─── Configuration ───────────────────────────────────────────────────────────
@@ -215,21 +216,72 @@ async function scanLongRunningTasks(): Promise<number> {
 /**
  * Run a single scan cycle (deadline + long-running).
  */
-export async function runScanCycle(): Promise<{ deadlineReminders: number; longRunningAlerts: number }> {
+export async function runScanCycle(): Promise<{ deadlineReminders: number; longRunningAlerts: number; escalations: number }> {
   try {
     const deadlineReminders = await scanDeadlineReminders();
     const longRunningAlerts = await scanLongRunningTasks();
+    const escalations = await scanQcEscalations();
 
-    if (deadlineReminders > 0 || longRunningAlerts > 0) {
+    if (deadlineReminders > 0 || longRunningAlerts > 0 || escalations > 0) {
       console.log(
-        `[reminderEngine] Scan complete: ${deadlineReminders} deadline reminders, ${longRunningAlerts} long-running alerts`,
+        `[reminderEngine] Scan complete: ${deadlineReminders} deadline reminders, ${longRunningAlerts} long-running alerts, ${escalations} escalations`,
       );
     }
 
-    return { deadlineReminders, longRunningAlerts };
+    return { deadlineReminders, longRunningAlerts, escalations };
   } catch (err) {
     console.error("[reminderEngine] Scan cycle crashed (non-fatal):", err);
-    return { deadlineReminders: 0, longRunningAlerts: 0 };
+    return { deadlineReminders: 0, longRunningAlerts: 0, escalations: 0 };
+  }
+}
+
+/**
+ * Auto-escalation: notify supervisors/managers when tasks are stuck
+ * in submitted/under_qc for more than 4 hours.
+ */
+async function scanQcEscalations(): Promise<number> {
+  try {
+    const ESCALATION_HOURS = 4;
+    const cutoff = new Date(Date.now() - ESCALATION_HOURS * 60 * 60 * 1000);
+
+    const staleTasks = await db
+      .select({ id: tasksTable.id, title: tasksTable.title })
+      .from(tasksTable)
+      .where(
+        and(
+          inArray(tasksTable.status, ["submitted", "under_qc"]),
+          isNotNull(tasksTable.submittedAt),
+          lt(tasksTable.submittedAt, cutoff),
+        ),
+      );
+
+    if (staleTasks.length === 0) return 0;
+
+    const managers = await db
+      .select({ id: usersTable.id })
+      .from(usersTable)
+      .where(inArray(usersTable.role, ["site_manager", "supervisor", "engineer"]));
+
+    let count = 0;
+    for (const task of staleTasks) {
+      for (const mgr of managers) {
+        const prefix = `[Escalation] "${task.title}"`;
+        const alreadySent = await wasReminderSent(mgr.id, task.id, prefix);
+        if (alreadySent) continue;
+        await createNotification(
+          mgr.id,
+          task.id,
+          "task_overdue",
+          `${prefix} — awaiting QC review`,
+          `Task has been waiting for QC review for over ${ESCALATION_HOURS} hours. Immediate action required.`,
+        );
+        count++;
+      }
+    }
+    return count;
+  } catch (err) {
+    console.error("[reminderEngine] QC escalation scan error (non-fatal):", err);
+    return 0;
   }
 }
 
