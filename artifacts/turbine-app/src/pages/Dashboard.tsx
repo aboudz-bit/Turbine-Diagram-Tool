@@ -2,6 +2,7 @@ import * as React from "react"
 import { useListTasks, useGetDashboardStats } from "@workspace/api-client-react"
 import { Card, Badge } from "@/components/ui/core"
 import { useLocation } from "wouter"
+import { useAuth } from "@/hooks/useAuth"
 import {
   AlertTriangle, CheckCircle2, Clock, Activity,
   ArrowRight, ShieldCheck, Users, Zap, Timer,
@@ -51,11 +52,19 @@ function SectionHeader({ icon: Icon, label, action, onAction }: {
   )
 }
 
+const ROLE_LABELS: Record<string, string> = {
+  engineer: 'Engineer',
+  supervisor: 'Supervisor',
+  technician: 'Technician',
+  site_manager: 'Site Manager',
+}
+
 export default function Dashboard() {
   const { data: taskResponse, isLoading } = useListTasks()
   const tasks = taskResponse?.data
   const { data: stats, isLoading: statsLoading } = useGetDashboardStats()
   const [, setLocation] = useLocation()
+  const { user } = useAuth()
 
   const computed = React.useMemo(() => {
     if (!tasks) return { total: 0, inProgress: 0, overdue: 0, pendingQc: 0, assigned: 0 }
@@ -114,6 +123,17 @@ export default function Dashboard() {
             <p className="text-muted-foreground text-sm mt-2 max-w-lg leading-relaxed">
               Real-time monitoring, task control, and turbine maintenance insights
             </p>
+            {user && (
+              <div className="flex items-center gap-2 mt-4">
+                <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-xs font-bold text-primary">
+                  {user.name.charAt(0)}
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-foreground leading-none">{user.name}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">{ROLE_LABELS[user.role] ?? user.role}</p>
+                </div>
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-4 py-2.5 rounded-full flex-shrink-0">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
