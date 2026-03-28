@@ -198,18 +198,6 @@ export default function TaskDetail() {
     query: { enabled: !!taskId }
   })
 
-  React.useEffect(() => {
-    if (task) {
-      console.log("[TaskDetail] task loaded:", task)
-    }
-  }, [task])
-
-  React.useEffect(() => {
-    if (isError) {
-      console.error("[TaskDetail] failed to load task:", error)
-    }
-  }, [isError, error])
-
   const startMutation = useStartTimeTracking()
   const pauseMutation = usePauseTimeTracking()
   const resumeMutation = useResumeTimeTracking()
@@ -222,10 +210,6 @@ export default function TaskDetail() {
   const { data: attachmentsData, refetch: refetchAttachments } = useListAttachments(taskId, {
     query: { enabled: !!taskId }
   })
-
-  React.useEffect(() => {
-    console.log("[TaskDetail] attachments for task", taskId, ":", attachmentsData)
-  }, [attachmentsData, taskId])
 
   const { data: auditData } = useGetTaskAuditLog(taskId, {
     query: { enabled: !!taskId }
@@ -360,20 +344,16 @@ export default function TaskDetail() {
       const { uploadURL, objectPath } = await requestUploadUrlMutation.mutateAsync({
         data: { name: file.name, size: file.size, contentType: file.type }
       })
-      console.log("[TaskDetail] uploading to GCS, objectPath:", objectPath)
       const gcsResponse = await fetch(uploadURL, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } })
       if (!gcsResponse.ok) {
-        console.error("[TaskDetail] GCS upload failed:", gcsResponse.status, gcsResponse.statusText)
         throw new Error(`File storage upload failed (${gcsResponse.status})`)
       }
-      const saved = await createAttachmentMutation.mutateAsync({
+      await createAttachmentMutation.mutateAsync({
         taskId,
         data: { fileName: file.name, mimeType: file.type, fileSize: file.size, storageUrl: objectPath },
       })
-      console.log("[TaskDetail] attachment saved:", saved)
       refetchAttachments()
-    } catch (err) {
-      console.error("[TaskDetail] upload error:", err)
+    } catch {
       setUploadError('Upload failed. Please try again.')
     } finally {
       setUploading(false)

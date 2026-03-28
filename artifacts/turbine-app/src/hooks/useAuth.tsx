@@ -176,25 +176,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = React.useCallback(() => {
-    // 1. Prevent the 401 handler from re-triggering logout
     setLoggedIn(false);
-    // 2. Remove the auth token from storage immediately so in-flight requests
-    //    issued after this point carry no credentials
     clearStorage();
-    // 3. Synchronously commit the React state update — this unmounts all
-    //    auth-gated pages (Dashboard, TaskDetail, etc.) and removes their
-    //    React Query observers BEFORE we wipe the cache.  Without flushSync
-    //    the cache is cleared while those pages are still mounted, causing a
-    //    race where queries re-fetch with a null token, receive a 401, and
-    //    render with data=undefined+isLoading=false — crashing into the
-    //    ErrorBoundary and making the app appear dead.
+    // flushSync commits the state update synchronously so auth-gated pages
+    // unmount (and their React Query observers are removed) before the cache
+    // is cleared.  Without this, clearQueryCache() triggers refetches while
+    // those pages are still mounted; the resulting 401s leave them with
+    // data=undefined + isLoading=false, causing a crash.
     flushSync(() => {
       setToken(null);
       setUser(null);
     });
-    // 4. Now that the authenticated pages are unmounted and their observers
-    //    are gone, clearing the cache is safe — nothing will try to re-render
-    //    with stale or undefined data.
     clearQueryCache();
   }, []);
 
